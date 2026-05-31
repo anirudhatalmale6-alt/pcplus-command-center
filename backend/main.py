@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders
+from modules import zammad, rmm, reminders, notifications
 
 
 class ReminderCreate(BaseModel):
@@ -15,6 +15,12 @@ class ReminderCreate(BaseModel):
     due_date: str | None = None
     category: str = "general"
     priority: str = "normal"
+
+
+class EscalationRequest(BaseModel):
+    ticket_number: str
+    ticket_title: str
+    minutes_waiting: int = 5
 
 
 connected_clients: list[WebSocket] = []
@@ -119,6 +125,14 @@ async def create_reminder(r: ReminderCreate):
 async def complete_reminder(reminder_id: int):
     reminders.complete_reminder(reminder_id)
     return {"status": "ok"}
+
+
+@app.post("/api/escalate")
+async def escalate(req: EscalationRequest):
+    result = await notifications.escalate_ticket(
+        req.ticket_number, req.ticket_title, req.minutes_waiting
+    )
+    return result
 
 
 @app.websocket("/ws")

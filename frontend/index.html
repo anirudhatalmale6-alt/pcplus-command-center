@@ -758,6 +758,10 @@ function connectWS() {
 // ── Persistent Alert ──
 let alertChimeInterval = null;
 let alertActive = false;
+let escalationTimer = null;
+let escalationSent = false;
+let alertTicketInfo = null;
+const ESCALATION_DELAY = 5 * 60 * 1000;
 
 function playAlertChime() {
   try {
@@ -789,8 +793,10 @@ function playAlertChime() {
 function triggerNewTicketAlert(newTickets) {
   if (alertActive) return;
   alertActive = true;
+  escalationSent = false;
   const t = newTickets[0];
   const count = newTickets.length;
+  alertTicketInfo = { number: t.number || t.id, title: t.title };
   document.getElementById('alertText').textContent = count > 1
     ? `${count} NEW TICKETS INCOMING`
     : 'NEW TICKET INCOMING';
@@ -802,6 +808,24 @@ function triggerNewTicketAlert(newTickets) {
   showScreen(0);
   playAlertChime();
   alertChimeInterval = setInterval(playAlertChime, 3000);
+  escalationTimer = setTimeout(sendEscalation, ESCALATION_DELAY);
+}
+
+async function sendEscalation() {
+  if (escalationSent || !alertTicketInfo) return;
+  escalationSent = true;
+  try {
+    await fetch('/api/escalate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticket_number: String(alertTicketInfo.number),
+        ticket_title: alertTicketInfo.title,
+        minutes_waiting: 5
+      })
+    });
+    document.getElementById('alertDetail').textContent += ' — ESCALATED (email + WhatsApp sent)';
+  } catch {}
 }
 
 function acknowledgeAlert() {
@@ -809,6 +833,8 @@ function acknowledgeAlert() {
   document.getElementById('alertBanner').classList.remove('visible');
   document.getElementById('alertOverlay').classList.remove('visible');
   if (alertChimeInterval) { clearInterval(alertChimeInterval); alertChimeInterval = null; }
+  if (escalationTimer) { clearTimeout(escalationTimer); escalationTimer = null; }
+  alertTicketInfo = null;
 }
 
 // ── Init ──
