@@ -293,9 +293,62 @@ text-shadow:0 0 30px rgba(37,150,190,.15);
 .stagger>*:nth-child(9){animation-delay:.45s}
 .stagger>*:nth-child(10){animation-delay:.5s}
 .stagger>*:nth-child(n+11){animation-delay:.55s}
+
+/* ── New Ticket Alert Banner ── */
+.alert-banner{
+position:fixed;top:0;left:0;right:0;z-index:1000;
+display:none;flex-direction:column;align-items:center;justify-content:center;
+padding:24px 32px;gap:12px;
+background:linear-gradient(135deg,rgba(37,150,190,.95),rgba(30,127,163,.95));
+backdrop-filter:blur(10px);
+box-shadow:0 4px 40px rgba(37,150,190,.4),0 0 80px rgba(37,150,190,.15);
+animation:alert-pulse 1.5s ease-in-out infinite;
+}
+.alert-banner.visible{display:flex}
+@keyframes alert-pulse{
+0%,100%{background:linear-gradient(135deg,rgba(37,150,190,.95),rgba(30,127,163,.95))}
+50%{background:linear-gradient(135deg,rgba(37,150,190,.8),rgba(39,174,96,.85))}
+}
+.alert-banner-icon{
+width:48px;height:48px;border-radius:50%;
+background:rgba(255,255,255,.2);
+display:grid;place-items:center;
+font-size:24px;color:#fff;
+animation:alert-ring 0.6s ease-in-out infinite alternate;
+}
+@keyframes alert-ring{from{transform:scale(1)}to{transform:scale(1.1)}}
+.alert-banner-text{
+font-size:20px;font-weight:700;color:#fff;letter-spacing:.5px;text-align:center;
+}
+.alert-banner-detail{
+font-size:14px;color:rgba(255,255,255,.85);font-family:var(--font-mono);text-align:center;
+max-width:600px;
+}
+.alert-banner-btn{
+padding:12px 36px;border-radius:8px;border:2px solid rgba(255,255,255,.5);
+background:rgba(255,255,255,.15);color:#fff;
+font-family:var(--font-display);font-size:14px;font-weight:700;
+letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+transition:all .2s;margin-top:4px;
+}
+.alert-banner-btn:hover{background:rgba(255,255,255,.3);border-color:#fff;transform:translateY(-1px)}
+
+.alert-overlay{
+position:fixed;inset:0;z-index:999;
+background:rgba(6,14,26,.3);
+display:none;pointer-events:none;
+}
+.alert-overlay.visible{display:block}
 </style>
 </head>
 <body>
+<div class="alert-overlay" id="alertOverlay"></div>
+<div class="alert-banner" id="alertBanner">
+  <div class="alert-banner-icon">&#128276;</div>
+  <div class="alert-banner-text" id="alertText">NEW TICKET INCOMING</div>
+  <div class="alert-banner-detail" id="alertDetail"></div>
+  <button class="alert-banner-btn" onclick="acknowledgeAlert()">ACKNOWLEDGE</button>
+</div>
 <div class="app">
 
   <!-- Top Bar -->
@@ -540,7 +593,7 @@ function renderTickets(tickets, stats) {
 
   const newIds = new Set(tickets.map(t => t.id));
   const brandNew = tickets.filter(t => !previousTicketIds.has(t.id) && previousTicketIds.size > 0);
-  if (brandNew.length > 0) playChime();
+  if (brandNew.length > 0) triggerNewTicketAlert(brandNew);
   previousTicketIds = newIds;
 
   el.innerHTML = tickets.map(t => {
@@ -700,6 +753,62 @@ function connectWS() {
   } catch {
     setTimeout(connectWS, 5000);
   }
+}
+
+// ── Persistent Alert ──
+let alertChimeInterval = null;
+let alertActive = false;
+
+function playAlertChime() {
+  try {
+    if (!chimeCtx) chimeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = chimeCtx.currentTime;
+    const osc1 = chimeCtx.createOscillator();
+    const osc2 = chimeCtx.createOscillator();
+    const gain = chimeCtx.createGain();
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(chimeCtx.destination);
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(880, now);
+    osc1.frequency.setValueAtTime(1320, now + 0.12);
+    osc1.frequency.setValueAtTime(1100, now + 0.24);
+    osc2.frequency.setValueAtTime(440, now);
+    osc2.frequency.setValueAtTime(660, now + 0.12);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.setValueAtTime(0.15, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc1.start(now);
+    osc1.stop(now + 0.8);
+    osc2.start(now);
+    osc2.stop(now + 0.5);
+  } catch {}
+}
+
+function triggerNewTicketAlert(newTickets) {
+  if (alertActive) return;
+  alertActive = true;
+  const t = newTickets[0];
+  const count = newTickets.length;
+  document.getElementById('alertText').textContent = count > 1
+    ? `${count} NEW TICKETS INCOMING`
+    : 'NEW TICKET INCOMING';
+  document.getElementById('alertDetail').textContent = count > 1
+    ? `#${t.number || t.id} "${t.title}" + ${count - 1} more`
+    : `#${t.number || t.id} — ${t.title}`;
+  document.getElementById('alertBanner').classList.add('visible');
+  document.getElementById('alertOverlay').classList.add('visible');
+  showScreen(0);
+  playAlertChime();
+  alertChimeInterval = setInterval(playAlertChime, 3000);
+}
+
+function acknowledgeAlert() {
+  alertActive = false;
+  document.getElementById('alertBanner').classList.remove('visible');
+  document.getElementById('alertOverlay').classList.remove('visible');
+  if (alertChimeInterval) { clearInterval(alertChimeInterval); alertChimeInterval = null; }
 }
 
 // ── Init ──
