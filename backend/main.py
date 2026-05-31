@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan, calcom
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx
 
 
 class ReminderCreate(BaseModel):
@@ -38,10 +38,12 @@ async def refresh_data():
             backups_task = crashplan.get_backup_status()
 
             appointments_task = calcom.get_todays_appointments()
+            missed_task = threecx.get_missed_calls()
+            active_calls_task = threecx.get_active_calls()
 
-            tickets, stats, agents, alerts, backups, appointments = await asyncio.gather(
+            tickets, stats, agents, alerts, backups, appointments, missed, active_calls = await asyncio.gather(
                 tickets_task, stats_task, agents_task, alerts_task, backups_task,
-                appointments_task,
+                appointments_task, missed_task, active_calls_task,
                 return_exceptions=True
             )
 
@@ -52,6 +54,8 @@ async def refresh_data():
                 "alerts": alerts if not isinstance(alerts, Exception) else [],
                 "backups": backups if not isinstance(backups, Exception) else {"configured": False},
                 "appointments": appointments if not isinstance(appointments, Exception) else [],
+                "missed_calls": missed if not isinstance(missed, Exception) else [],
+                "active_calls": active_calls if not isinstance(active_calls, Exception) else [],
                 "reminders": reminders.get_reminders(),
                 "updated_at": datetime.now().isoformat(),
             }

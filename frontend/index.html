@@ -143,6 +143,28 @@ display:grid;place-items:center;font-size:32px;color:var(--green);
 .empty-text{font-size:20px;font-weight:700;color:var(--text)}
 .empty-sub{font-size:13px;color:var(--text-mid)}
 
+/* ── Missed Calls ── */
+.missed-section{margin-top:16px}
+.missed-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.missed-row{
+display:flex;align-items:center;gap:12px;
+padding:10px 16px;border-radius:8px;margin-bottom:4px;
+background:var(--orange-dim);border:1px solid rgba(243,156,18,.12);
+font-size:13px;
+}
+.missed-icon{color:var(--orange);font-size:16px;flex-shrink:0}
+.missed-name{font-weight:600;color:var(--text);min-width:150px}
+.missed-number{font-family:var(--font-mono);color:var(--text-mid);flex:1}
+.missed-time{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0}
+.active-call-row{
+display:flex;align-items:center;gap:12px;
+padding:10px 16px;border-radius:8px;margin-bottom:4px;
+background:var(--green-dim);border:1px solid rgba(39,174,96,.15);
+font-size:13px;animation:pulse-border 3s ease-in-out infinite;
+border-left:3px solid var(--green);
+}
+.active-call-icon{color:var(--green);font-size:16px;flex-shrink:0}
+
 /* ── Device Grid ── */
 .stats-row{display:flex;gap:12px;margin-bottom:20px}
 .stat-card{
@@ -436,6 +458,8 @@ display:none;pointer-events:none;
         </div>
       </div>
       <div id="ticketList" class="ticket-list stagger"></div>
+      <div id="activeCallsSection"></div>
+      <div id="missedCallsSection"></div>
     </div>
 
     <!-- Screen 2: Managed Devices -->
@@ -741,6 +765,47 @@ function renderReminders(items) {
   `).join('');
 }
 
+function renderCalls(missed, active) {
+  const missedEl = document.getElementById('missedCallsSection');
+  const activeEl = document.getElementById('activeCallsSection');
+  const mc = missed || [];
+  const ac = active || [];
+
+  if (ac.length > 0) {
+    activeEl.innerHTML = `
+      <div class="missed-section">
+        <div class="missed-title">&#9742; Active Calls (${ac.length})</div>
+        ${ac.map(c => `
+          <div class="active-call-row">
+            <div class="active-call-icon">&#9742;</div>
+            <div class="missed-name">${esc(c.caller)}</div>
+            <div class="missed-number">&rarr; ${esc(c.callee)}</div>
+            <div class="missed-time">${esc(c.status)}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } else {
+    activeEl.innerHTML = '';
+  }
+
+  if (mc.length > 0) {
+    missedEl.innerHTML = `
+      <div class="missed-section">
+        <div class="missed-title">&#128308; Missed Calls (${mc.length})</div>
+        ${mc.map(c => `
+          <div class="missed-row">
+            <div class="missed-icon">&#128222;</div>
+            <div class="missed-name">${esc(c.caller_name || 'Unknown')}</div>
+            <div class="missed-number">${esc(c.caller_number)}</div>
+            <div class="missed-time">${timeAgo(c.time)}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } else {
+    missedEl.innerHTML = '';
+  }
+}
+
 function renderAppointments(items) {
   const el = document.getElementById('appointmentsList');
   const appts = items || [];
@@ -860,6 +925,7 @@ function applyData(d) {
   data = d;
   lastUpdateTime = Date.now();
   renderTickets(d.tickets, d.ticket_stats);
+  renderCalls(d.missed_calls, d.active_calls);
   renderDevices(d.agents, d.alerts);
   renderBackups(d.backups);
   renderAppointments(d.appointments);
