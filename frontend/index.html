@@ -294,6 +294,38 @@ text-shadow:0 0 30px rgba(37,150,190,.15);
 .stagger>*:nth-child(10){animation-delay:.5s}
 .stagger>*:nth-child(n+11){animation-delay:.55s}
 
+/* ── Backup Screen ── */
+.backup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.backup-card{
+padding:14px 16px;border-radius:8px;
+background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;gap:14px;
+transition:all .3s;
+}
+.backup-card:hover{border-color:var(--border-active)}
+.backup-card.health-ok{border-left:3px solid var(--green)}
+.backup-card.health-warning{border-left:3px solid var(--orange)}
+.backup-card.health-critical{border-left:3px solid var(--red);animation:pulse-border 3s ease-in-out infinite}
+.backup-status-icon{
+width:36px;height:36px;border-radius:8px;
+display:grid;place-items:center;font-size:18px;flex-shrink:0;
+}
+.backup-status-icon.ok{background:var(--green-dim);color:var(--green)}
+.backup-status-icon.warning{background:var(--orange-dim);color:var(--orange)}
+.backup-status-icon.critical{background:var(--red-dim);color:var(--red)}
+.backup-info{flex:1;min-width:0}
+.backup-name{font-size:14px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.backup-detail{font-size:11px;color:var(--text-mid);margin-top:2px}
+.backup-time{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:right;flex-shrink:0}
+.backup-unconfigured{
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:60px 20px;gap:12px;text-align:center;
+}
+.backup-unconfigured-icon{font-size:48px;opacity:.5}
+.badge-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(39,174,96,.2)}
+.badge-warn{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(243,156,18,.2)}
+.badge-crit{background:var(--red-dim);color:var(--red);border:1px solid rgba(231,76,60,.2)}
+
 /* ── New Ticket Alert Banner ── */
 .alert-banner{
 position:fixed;top:0;left:0;right:0;z-index:1000;
@@ -363,7 +395,8 @@ display:none;pointer-events:none;
     <div class="nav-dots">
       <button class="nav-dot active" data-screen="0" title="Support Queue"></button>
       <button class="nav-dot" data-screen="1" title="Managed Devices"></button>
-      <button class="nav-dot" data-screen="2" title="Today's Tasks"></button>
+      <button class="nav-dot" data-screen="2" title="Backup Status"></button>
+      <button class="nav-dot" data-screen="3" title="Today's Tasks"></button>
     </div>
     <div class="topbar-right">
       <div class="paused-badge" id="pausedBadge">PAUSED</div>
@@ -406,8 +439,25 @@ display:none;pointer-events:none;
       <div class="alerts-section" id="alertsSection"></div>
     </div>
 
-    <!-- Screen 3: Today's Tasks -->
+    <!-- Screen 3: Backup Status -->
     <div class="screen" id="screen2">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:rgba(37,150,190,.12);color:var(--blue)">&#9729;</div>
+          Backup Status
+        </div>
+        <div class="badges" id="backupBadges">
+          <div class="badge badge-ok"><span id="badgeBackupOk">0</span> OK</div>
+          <div class="badge badge-warn"><span id="badgeBackupWarn">0</span> Warning</div>
+          <div class="badge badge-crit"><span id="badgeBackupCrit">0</span> Critical</div>
+        </div>
+      </div>
+      <div class="stats-row" id="backupStats"></div>
+      <div class="backup-grid stagger" id="backupGrid"></div>
+    </div>
+
+    <!-- Screen 4: Today's Tasks -->
+    <div class="screen" id="screen3">
       <div class="screen-header">
         <div class="screen-title">
           <div class="icon" style="background:var(--orange-dim);color:var(--orange)">&#9776;</div>
@@ -455,7 +505,7 @@ const API_URL = '/api/dashboard';
 const TZ = 'America/Toronto';
 
 let currentScreen = 0;
-let totalScreens = 3;
+let totalScreens = 4;
 let paused = false;
 let rotateTimer = null;
 let ws = null;
@@ -682,6 +732,61 @@ function renderReminders(items) {
   `).join('');
 }
 
+function renderBackups(backups) {
+  const b = backups || { configured: false };
+  const statsEl = document.getElementById('backupStats');
+  const gridEl = document.getElementById('backupGrid');
+
+  if (!b.configured) {
+    statsEl.innerHTML = '';
+    gridEl.innerHTML = `
+      <div class="backup-unconfigured">
+        <div class="backup-unconfigured-icon">&#9729;</div>
+        <div class="empty-text">CrashPlan Not Configured</div>
+        <div class="empty-sub">Waiting for API credentials to connect backup monitoring</div>
+      </div>`;
+    document.getElementById('badgeBackupOk').textContent = '0';
+    document.getElementById('badgeBackupWarn').textContent = '0';
+    document.getElementById('badgeBackupCrit').textContent = '0';
+    return;
+  }
+
+  const s = b.summary || {};
+  document.getElementById('badgeBackupOk').textContent = s.ok || 0;
+  document.getElementById('badgeBackupWarn').textContent = s.warning || 0;
+  document.getElementById('badgeBackupCrit').textContent = s.critical || 0;
+
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-value total">${s.total || 0}</div><div class="stat-label">Total Devices</div></div>
+    <div class="stat-card"><div class="stat-value online">${s.ok || 0}</div><div class="stat-label">Backed Up</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--orange)">${s.warning || 0}</div><div class="stat-label">Warning</div></div>
+    <div class="stat-card"><div class="stat-value offline">${s.critical || 0}</div><div class="stat-label">Critical</div></div>
+  `;
+
+  const devices = b.devices || [];
+  if (devices.length === 0) {
+    gridEl.innerHTML = `
+      <div class="backup-unconfigured">
+        <div class="empty-icon" style="width:56px;height:56px;font-size:24px">&#10003;</div>
+        <div class="empty-text" style="font-size:16px">No Devices Found</div>
+        <div class="empty-sub">No active backup devices reported</div>
+      </div>`;
+    return;
+  }
+
+  const icons = { ok: '&#10003;', warning: '&#9888;', critical: '&#10007;' };
+  gridEl.innerHTML = devices.map(d => `
+    <div class="backup-card health-${d.health}">
+      <div class="backup-status-icon ${d.health}">${icons[d.health] || '?'}</div>
+      <div class="backup-info">
+        <div class="backup-name">${esc(d.name)}</div>
+        <div class="backup-detail">${esc(d.user || d.os || d.status)}</div>
+      </div>
+      <div class="backup-time">${d.last_backup ? timeAgo(d.last_backup) : 'Never'}</div>
+    </div>
+  `).join('');
+}
+
 function esc(s) {
   if (!s) return '';
   const d = document.createElement('div');
@@ -723,6 +828,7 @@ function applyData(d) {
   lastUpdateTime = Date.now();
   renderTickets(d.tickets, d.ticket_stats);
   renderDevices(d.agents, d.alerts);
+  renderBackups(d.backups);
   renderReminders(d.reminders);
 }
 

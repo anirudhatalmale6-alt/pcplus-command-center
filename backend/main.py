@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications
+from modules import zammad, rmm, reminders, notifications, crashplan
 
 
 class ReminderCreate(BaseModel):
@@ -35,9 +35,10 @@ async def refresh_data():
             stats_task = zammad.get_ticket_stats()
             agents_task = rmm.get_agents_summary()
             alerts_task = rmm.get_alerts()
+            backups_task = crashplan.get_backup_status()
 
-            tickets, stats, agents, alerts = await asyncio.gather(
-                tickets_task, stats_task, agents_task, alerts_task,
+            tickets, stats, agents, alerts, backups = await asyncio.gather(
+                tickets_task, stats_task, agents_task, alerts_task, backups_task,
                 return_exceptions=True
             )
 
@@ -46,6 +47,7 @@ async def refresh_data():
                 "ticket_stats": stats if not isinstance(stats, Exception) else {},
                 "agents": agents if not isinstance(agents, Exception) else {},
                 "alerts": alerts if not isinstance(alerts, Exception) else [],
+                "backups": backups if not isinstance(backups, Exception) else {"configured": False},
                 "reminders": reminders.get_reminders(),
                 "updated_at": datetime.now().isoformat(),
             }
@@ -81,11 +83,13 @@ async def dashboard():
     stats = await zammad.get_ticket_stats()
     agents = await rmm.get_agents_summary()
     alerts = await rmm.get_alerts()
+    backups = await crashplan.get_backup_status()
     return {
         "tickets": tickets,
         "ticket_stats": stats,
         "agents": agents,
         "alerts": alerts,
+        "backups": backups,
         "reminders": reminders.get_reminders(),
         "updated_at": datetime.now().isoformat(),
     }
@@ -109,6 +113,11 @@ async def agents():
 @app.get("/api/alerts")
 async def alerts():
     return await rmm.get_alerts()
+
+
+@app.get("/api/backups")
+async def backup_status():
+    return await crashplan.get_backup_status()
 
 
 @app.get("/api/reminders")
