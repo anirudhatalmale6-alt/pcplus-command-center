@@ -84,8 +84,10 @@ async def get_backup_status():
             alert_state = d.get("alertStates", "OK")
             pct_str = d.get("backupCompletePercentage", "0")
             pct = float(pct_str) if pct_str else 0
-            last_backup = d.get("lastCompletedBackupDate", "")
+            last_completed = d.get("lastCompletedBackupDate", "")
+            last_activity = d.get("lastActivity", "")
             last_connected = d.get("lastConnectedDate", "")
+            last_backup = last_activity or last_completed or last_connected
             selected = d.get("selectedBytes", "0")
             archived = d.get("archiveBytes", "0")
             os_name = d.get("os", "")
@@ -124,6 +126,7 @@ async def get_backup_status():
                 "alert_state": alert_state,
                 "percent": pct,
                 "last_backup": last_backup,
+                "last_activity": last_activity,
                 "last_connected": last_connected,
                 "selected_size": _format_bytes(selected),
                 "archive_size": _format_bytes(archived),
