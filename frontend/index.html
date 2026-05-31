@@ -780,7 +780,7 @@ function renderBackups(backups) {
       <div class="backup-status-icon ${d.health}">${icons[d.health] || '?'}</div>
       <div class="backup-info">
         <div class="backup-name">${esc(d.name)}</div>
-        <div class="backup-detail">${esc(d.user || d.os || d.status)}</div>
+        <div class="backup-detail">${esc(d.status)} &middot; ${esc(d.selected_size || '')} &rarr; ${esc(d.archive_size || '')}</div>
       </div>
       <div class="backup-time">${d.last_backup ? timeAgo(d.last_backup) : 'Never'}</div>
     </div>
