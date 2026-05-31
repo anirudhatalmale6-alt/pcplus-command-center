@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom
 
 
 class ReminderCreate(BaseModel):
@@ -37,8 +37,11 @@ async def refresh_data():
             alerts_task = rmm.get_alerts()
             backups_task = crashplan.get_backup_status()
 
-            tickets, stats, agents, alerts, backups = await asyncio.gather(
+            appointments_task = calcom.get_todays_appointments()
+
+            tickets, stats, agents, alerts, backups, appointments = await asyncio.gather(
                 tickets_task, stats_task, agents_task, alerts_task, backups_task,
+                appointments_task,
                 return_exceptions=True
             )
 
@@ -48,6 +51,7 @@ async def refresh_data():
                 "agents": agents if not isinstance(agents, Exception) else {},
                 "alerts": alerts if not isinstance(alerts, Exception) else [],
                 "backups": backups if not isinstance(backups, Exception) else {"configured": False},
+                "appointments": appointments if not isinstance(appointments, Exception) else [],
                 "reminders": reminders.get_reminders(),
                 "updated_at": datetime.now().isoformat(),
             }
@@ -84,12 +88,14 @@ async def dashboard():
     agents = await rmm.get_agents_summary()
     alerts = await rmm.get_alerts()
     backups = await crashplan.get_backup_status()
+    appointments = await calcom.get_todays_appointments()
     return {
         "tickets": tickets,
         "ticket_stats": stats,
         "agents": agents,
         "alerts": alerts,
         "backups": backups,
+        "appointments": appointments,
         "reminders": reminders.get_reminders(),
         "updated_at": datetime.now().isoformat(),
     }
@@ -118,6 +124,11 @@ async def alerts():
 @app.get("/api/backups")
 async def backup_status():
     return await crashplan.get_backup_status()
+
+
+@app.get("/api/appointments")
+async def appointments():
+    return await calcom.get_upcoming_appointments()
 
 
 @app.get("/api/reminders")

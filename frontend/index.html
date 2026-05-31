@@ -239,6 +239,18 @@ font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:now
 padding:24px;text-align:center;color:var(--text-dim);font-size:13px;
 border:1px dashed var(--border);border-radius:8px;margin-top:12px;
 }
+.appt-item{
+display:flex;align-items:center;gap:12px;
+padding:10px 12px;border-radius:8px;margin-bottom:4px;
+border-left:3px solid var(--green);background:rgba(39,174,96,.05);
+}
+.appt-time{
+font-family:var(--font-mono);font-size:12px;font-weight:600;
+color:var(--green);min-width:55px;
+}
+.appt-info{flex:1;min-width:0}
+.appt-title{font-size:14px;font-weight:500}
+.appt-attendee{font-size:11px;color:var(--text-dim);margin-top:1px}
 
 /* ── Bottom Bar ── */
 .bottombar{
@@ -476,10 +488,7 @@ display:none;pointer-events:none;
         </div>
         <div class="task-section">
           <div class="task-section-title"><div class="dot" style="background:var(--green)"></div> Appointments</div>
-          <div class="appointments-placeholder" id="appointmentsList">
-            Cal.com integration coming soon<br>
-            <span style="font-size:11px;margin-top:4px;display:block">Appointments will appear here automatically</span>
-          </div>
+          <div id="appointmentsList"></div>
         </div>
       </div>
     </div>
@@ -732,6 +741,30 @@ function renderReminders(items) {
   `).join('');
 }
 
+function renderAppointments(items) {
+  const el = document.getElementById('appointmentsList');
+  const appts = items || [];
+
+  if (appts.length === 0) {
+    el.innerHTML = '<div class="appointments-placeholder">No appointments today<br><span style="font-size:11px;margin-top:4px;display:block">Bookings from Cal.com will appear here</span></div>';
+    return;
+  }
+
+  el.innerHTML = appts.map(a => {
+    const start = a.start ? new Date(a.start) : null;
+    const timeStr = start ? start.toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+    const attendee = a.attendees && a.attendees.length > 0 ? a.attendees[0].name : '';
+    return `
+    <div class="appt-item">
+      <div class="appt-time">${esc(timeStr)}</div>
+      <div class="appt-info">
+        <div class="appt-title">${esc(a.title)}</div>
+        ${attendee ? `<div class="appt-attendee">${esc(attendee)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderBackups(backups) {
   const b = backups || { configured: false };
   const statsEl = document.getElementById('backupStats');
@@ -829,6 +862,7 @@ function applyData(d) {
   renderTickets(d.tickets, d.ticket_stats);
   renderDevices(d.agents, d.alerts);
   renderBackups(d.backups);
+  renderAppointments(d.appointments);
   renderReminders(d.reminders);
 }
 
