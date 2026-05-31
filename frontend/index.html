@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PC Plus Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--navy:#0a1628;--navy-deep:#060e1a;--card:#0f1d32;--card-elevated:#132743;
+--blue:#2596be;--blue-dim:rgba(37,150,190,.15);--blue-glow:rgba(37,150,190,.3);
+--green:#27ae60;--green-dim:rgba(39,174,96,.12);
+--red:#e74c3c;--red-dim:rgba(231,76,60,.12);
+--orange:#f39c12;--orange-dim:rgba(243,156,18,.12);
+--text:#e8edf3;--text-mid:#8899aa;--text-dim:#4a5e74;
+--border:rgba(37,150,190,.08);--border-active:rgba(37,150,190,.25);
+--font-display:'DM Sans',system-ui,sans-serif;
+--font-mono:'JetBrains Mono',monospace;
+--transition:0.4s cubic-bezier(.4,0,.2,1);
+}
+html,body{height:100%;overflow:hidden;background:var(--navy-deep);color:var(--text);font-family:var(--font-display)}
+
+body{
+background:
+  radial-gradient(ellipse 80% 60% at 20% 10%,rgba(37,150,190,.04) 0%,transparent 70%),
+  radial-gradient(ellipse 60% 50% at 80% 90%,rgba(39,174,96,.03) 0%,transparent 70%),
+  linear-gradient(180deg,#060e1a 0%,#0a1628 40%,#0d1b30 100%);
+}
+
+body::after{
+content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+}
+
+.app{display:flex;flex-direction:column;height:100vh;position:relative}
+
+/* ── Top Bar ── */
+.topbar{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 32px;
+background:linear-gradient(180deg,rgba(6,14,26,.9) 0%,rgba(6,14,26,.4) 100%);
+border-bottom:1px solid var(--border);
+position:relative;z-index:10;flex-shrink:0;
+}
+.topbar::after{
+content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,var(--blue-glow),transparent);
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{
+width:38px;height:38px;border-radius:10px;
+background:linear-gradient(135deg,var(--green),var(--blue));
+display:grid;place-items:center;
+font-family:var(--font-mono);font-weight:700;font-size:16px;color:#fff;
+box-shadow:0 0 20px rgba(37,150,190,.2);
+}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:.5px;color:var(--text)}
+.brand-sub{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--blue);margin-top:1px}
+
+.nav-dots{display:flex;gap:8px;align-items:center}
+.nav-dot{
+width:10px;height:10px;border-radius:50%;background:var(--text-dim);cursor:pointer;
+transition:all .3s;border:none;outline:none;
+}
+.nav-dot.active{background:var(--blue);box-shadow:0 0 12px var(--blue-glow);transform:scale(1.2)}
+.nav-dot:hover:not(.active){background:var(--text-mid)}
+
+.topbar-right{display:flex;align-items:center;gap:20px}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:var(--font-mono)}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--red);transition:background .3s}
+.conn-dot.connected{background:var(--green);box-shadow:0 0 8px rgba(39,174,96,.4)}
+.paused-badge{
+font-size:10px;letter-spacing:2px;text-transform:uppercase;
+color:var(--orange);border:1px solid rgba(243,156,18,.3);
+padding:3px 10px;border-radius:4px;display:none;
+}
+.paused-badge.visible{display:block}
+.last-update{font-size:11px;color:var(--text-dim);font-family:var(--font-mono)}
+
+/* ── Screens Container ── */
+.screens{flex:1;position:relative;overflow:hidden}
+.screen{
+position:absolute;inset:0;padding:28px 32px;
+opacity:0;transform:translateY(8px);
+transition:opacity .6s ease,transform .6s ease;
+pointer-events:none;overflow-y:auto;
+scrollbar-width:thin;scrollbar-color:var(--text-dim) transparent;
+}
+.screen.active{opacity:1;transform:translateY(0);pointer-events:auto}
+
+.screen-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.screen-title{
+font-size:26px;font-weight:700;letter-spacing:-.5px;
+display:flex;align-items:center;gap:14px;
+}
+.screen-title .icon{
+width:36px;height:36px;border-radius:8px;display:grid;place-items:center;
+font-size:18px;
+}
+.badges{display:flex;gap:8px}
+.badge{
+font-family:var(--font-mono);font-size:12px;font-weight:600;
+padding:4px 12px;border-radius:6px;display:flex;align-items:center;gap:6px;
+}
+.badge-new{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(37,150,190,.2)}
+.badge-open{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(243,156,18,.2)}
+.badge-pending{background:rgba(255,255,255,.04);color:var(--text-mid);border:1px solid var(--border)}
+
+/* ── Ticket List ── */
+.ticket-list{display:flex;flex-direction:column;gap:6px}
+.ticket-row{
+display:grid;grid-template-columns:60px 1fr 180px 100px 70px;align-items:center;
+padding:14px 20px;border-radius:10px;
+background:var(--card);border:1px solid var(--border);
+transition:all .3s;gap:12px;
+}
+.ticket-row:hover{border-color:var(--border-active);background:var(--card-elevated)}
+.ticket-row.is-new{border-left:3px solid var(--blue);animation:pulse-border 3s ease-in-out infinite}
+@keyframes pulse-border{0%,100%{border-left-color:var(--blue)}50%{border-left-color:transparent}}
+.ticket-num{font-family:var(--font-mono);font-size:13px;color:var(--blue);font-weight:600}
+.ticket-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ticket-customer{font-size:12px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ticket-time{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:right}
+.priority-dot{
+width:10px;height:10px;border-radius:50%;justify-self:center;
+}
+.priority-1{background:var(--text-dim)}
+.priority-2{background:var(--blue)}
+.priority-3{background:var(--orange)}
+.priority-critical{background:var(--red);box-shadow:0 0 8px var(--red-dim)}
+
+.empty-state{
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:80px 20px;gap:16px;
+}
+.empty-icon{
+width:72px;height:72px;border-radius:50%;
+background:var(--green-dim);border:2px solid rgba(39,174,96,.2);
+display:grid;place-items:center;font-size:32px;color:var(--green);
+}
+.empty-text{font-size:20px;font-weight:700;color:var(--text)}
+.empty-sub{font-size:13px;color:var(--text-mid)}
+
+/* ── Device Grid ── */
+.stats-row{display:flex;gap:12px;margin-bottom:20px}
+.stat-card{
+flex:1;padding:18px 20px;border-radius:10px;
+background:var(--card);border:1px solid var(--border);
+text-align:center;
+}
+.stat-value{font-family:var(--font-mono);font-size:32px;font-weight:700;line-height:1}
+.stat-value.online{color:var(--green)}
+.stat-value.offline{color:var(--red)}
+.stat-value.total{color:var(--blue)}
+.stat-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-top:6px}
+
+.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:20px}
+.device-card{
+padding:14px 16px;border-radius:8px;
+background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;gap:12px;
+transition:all .3s;
+}
+.device-card:hover{border-color:var(--border-active)}
+.device-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.device-dot.online{background:var(--green);box-shadow:0 0 8px rgba(39,174,96,.4)}
+.device-dot.offline{background:var(--red)}
+.device-info{min-width:0}
+.device-host{font-size:13px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.device-client{font-size:11px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.alerts-section{margin-top:8px}
+.alerts-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.alert-row{
+display:flex;align-items:center;gap:12px;
+padding:10px 16px;border-radius:8px;margin-bottom:4px;
+background:var(--red-dim);border:1px solid rgba(231,76,60,.15);
+font-size:13px;
+}
+.alert-row.warning{background:var(--orange-dim);border-color:rgba(243,156,18,.15)}
+.alert-sev{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.alert-sev.error{background:var(--red);color:#fff}
+.alert-sev.warning{background:var(--orange);color:#000}
+.alert-host{font-weight:600;color:var(--text);min-width:120px}
+.alert-msg{color:var(--text-mid);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-time{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0}
+
+/* ── Tasks Screen ── */
+.tasks-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.tasks-cols{grid-template-columns:1fr}}
+.task-section{
+padding:20px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+}
+.task-section-title{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-mid);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.task-section-title .dot{width:8px;height:8px;border-radius:50%}
+
+.reminder-item{
+display:flex;align-items:flex-start;gap:12px;
+padding:10px 12px;border-radius:8px;margin-bottom:4px;
+transition:background .2s;cursor:default;
+}
+.reminder-item:hover{background:rgba(255,255,255,.03)}
+.reminder-item.overdue{background:var(--red-dim);border-left:3px solid var(--red)}
+.reminder-check{
+width:20px;height:20px;border-radius:6px;border:2px solid var(--text-dim);
+background:transparent;cursor:pointer;flex-shrink:0;margin-top:1px;
+display:grid;place-items:center;transition:all .2s;color:transparent;font-size:12px;
+}
+.reminder-check:hover{border-color:var(--green);color:var(--green)}
+.reminder-check.completing{background:var(--green);border-color:var(--green);color:#fff}
+.reminder-content{flex:1;min-width:0}
+.reminder-title{font-size:14px;font-weight:500}
+.reminder-meta{font-size:11px;color:var(--text-dim);margin-top:2px;display:flex;gap:10px;align-items:center}
+.carried-badge{
+font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+background:var(--orange-dim);color:var(--orange);
+padding:2px 6px;border-radius:3px;
+}
+
+.add-reminder{display:flex;gap:8px;margin-top:16px}
+.add-reminder input{
+flex:1;padding:10px 14px;border-radius:8px;border:1px solid var(--border);
+background:var(--navy);color:var(--text);font-family:var(--font-display);font-size:13px;
+outline:none;transition:border-color .2s;
+}
+.add-reminder input:focus{border-color:var(--blue)}
+.add-reminder input::placeholder{color:var(--text-dim)}
+.add-reminder button{
+padding:10px 18px;border-radius:8px;border:none;
+background:var(--blue);color:#fff;font-family:var(--font-display);
+font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.add-reminder button:hover{background:#1e7fa3;transform:translateY(-1px)}
+
+.appointments-placeholder{
+padding:24px;text-align:center;color:var(--text-dim);font-size:13px;
+border:1px dashed var(--border);border-radius:8px;margin-top:12px;
+}
+
+/* ── Bottom Bar ── */
+.bottombar{
+display:flex;align-items:center;justify-content:space-between;
+padding:12px 32px;
+background:linear-gradient(0deg,rgba(6,14,26,.95),rgba(6,14,26,.6));
+border-top:1px solid var(--border);
+position:relative;z-index:10;flex-shrink:0;
+}
+.bottombar::before{
+content:'';position:absolute;top:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,var(--blue-glow),transparent);
+}
+.bottom-brand{font-size:12px;color:var(--text-dim);letter-spacing:1px}
+.bottom-clock{
+font-family:var(--font-mono);font-size:36px;font-weight:600;
+color:var(--text);letter-spacing:2px;
+text-shadow:0 0 30px rgba(37,150,190,.15);
+}
+.bottom-clock .seconds{font-size:20px;color:var(--text-mid)}
+.bottom-date{font-size:12px;color:var(--text-dim);font-family:var(--font-mono);margin-top:2px;text-align:center}
+.bottom-right{text-align:right;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .topbar,.bottombar{padding:12px 16px}
+  .screen{padding:16px}
+  .ticket-row{grid-template-columns:50px 1fr 90px;font-size:12px}
+  .ticket-customer,.ticket-time{display:none}
+  .bottom-clock{font-size:24px}
+  .device-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .tasks-cols{grid-template-columns:1fr}
+  .screen-title{font-size:20px}
+}
+
+/* ── Scrollbar ── */
+.screen::-webkit-scrollbar{width:4px}
+.screen::-webkit-scrollbar-track{background:transparent}
+.screen::-webkit-scrollbar-thumb{background:var(--text-dim);border-radius:4px}
+
+/* ── Load animation ── */
+@keyframes fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.stagger>*{animation:fade-up .5s ease both}
+.stagger>*:nth-child(1){animation-delay:.05s}
+.stagger>*:nth-child(2){animation-delay:.1s}
+.stagger>*:nth-child(3){animation-delay:.15s}
+.stagger>*:nth-child(4){animation-delay:.2s}
+.stagger>*:nth-child(5){animation-delay:.25s}
+.stagger>*:nth-child(6){animation-delay:.3s}
+.stagger>*:nth-child(7){animation-delay:.35s}
+.stagger>*:nth-child(8){animation-delay:.4s}
+.stagger>*:nth-child(9){animation-delay:.45s}
+.stagger>*:nth-child(10){animation-delay:.5s}
+.stagger>*:nth-child(n+11){animation-delay:.55s}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">PC</div>
+      <div>
+        <div class="brand-name">PC Plus Computing</div>
+        <div class="brand-sub">Command Center</div>
+      </div>
+    </div>
+    <div class="nav-dots">
+      <button class="nav-dot active" data-screen="0" title="Support Queue"></button>
+      <button class="nav-dot" data-screen="1" title="Managed Devices"></button>
+      <button class="nav-dot" data-screen="2" title="Today's Tasks"></button>
+    </div>
+    <div class="topbar-right">
+      <div class="paused-badge" id="pausedBadge">PAUSED</div>
+      <div class="conn-status">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connLabel">CONNECTING</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div class="screens">
+
+    <!-- Screen 1: Support Queue -->
+    <div class="screen active" id="screen0">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:var(--blue-dim);color:var(--blue)">&#9993;</div>
+          Support Queue
+        </div>
+        <div class="badges">
+          <div class="badge badge-new"><span id="badgeNew">0</span> New</div>
+          <div class="badge badge-open"><span id="badgeOpen">0</span> Open</div>
+          <div class="badge badge-pending"><span id="badgePending">0</span> Pending</div>
+        </div>
+      </div>
+      <div id="ticketList" class="ticket-list stagger"></div>
+    </div>
+
+    <!-- Screen 2: Managed Devices -->
+    <div class="screen" id="screen1">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:var(--green-dim);color:var(--green)">&#9854;</div>
+          Managed Devices
+        </div>
+      </div>
+      <div class="stats-row" id="deviceStats"></div>
+      <div class="device-grid stagger" id="deviceGrid"></div>
+      <div class="alerts-section" id="alertsSection"></div>
+    </div>
+
+    <!-- Screen 3: Today's Tasks -->
+    <div class="screen" id="screen2">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:var(--orange-dim);color:var(--orange)">&#9776;</div>
+          Today
+        </div>
+        <div style="font-family:var(--font-mono);font-size:14px;color:var(--text-mid)" id="todayDate"></div>
+      </div>
+      <div class="tasks-cols">
+        <div class="task-section">
+          <div class="task-section-title"><div class="dot" style="background:var(--blue)"></div> To Do</div>
+          <div id="reminderList"></div>
+          <div class="add-reminder">
+            <input type="text" id="newReminder" placeholder="Add a reminder...">
+            <button onclick="addReminder()">Add</button>
+          </div>
+        </div>
+        <div class="task-section">
+          <div class="task-section-title"><div class="dot" style="background:var(--green)"></div> Appointments</div>
+          <div class="appointments-placeholder" id="appointmentsList">
+            Cal.com integration coming soon<br>
+            <span style="font-size:11px;margin-top:4px;display:block">Appointments will appear here automatically</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottombar">
+    <div class="bottom-brand">PC PLUS COMPUTING INC.</div>
+    <div style="text-align:center">
+      <div class="bottom-clock" id="clock"></div>
+      <div class="bottom-date" id="dateDisplay"></div>
+    </div>
+    <div class="bottom-right">
+      <div class="last-update" id="lastUpdate">Waiting for data...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROTATE_INTERVAL = 20000;
+const WS_URL = `ws://${location.host}/ws`;
+const API_URL = '/api/dashboard';
+const TZ = 'America/Toronto';
+
+let currentScreen = 0;
+let totalScreens = 3;
+let paused = false;
+let rotateTimer = null;
+let ws = null;
+let data = null;
+let lastUpdateTime = null;
+let previousTicketIds = new Set();
+let chimeCtx = null;
+
+// ── Clock ──
+function updateClock() {
+  const now = new Date();
+  const opts = { timeZone: TZ };
+  const h = now.toLocaleString('en-US', { ...opts, hour: '2-digit', minute: '2-digit', hour12: true }).replace(/\s?(AM|PM)/, '');
+  const ampm = now.toLocaleString('en-US', { ...opts, hour: '2-digit', hour12: true }).match(/(AM|PM)/)?.[0] || '';
+  const sec = now.toLocaleString('en-US', { ...opts, second: '2-digit' }).split(' ').pop()?.padStart(2, '0') || now.getSeconds().toString().padStart(2, '0');
+  const s = now.toLocaleTimeString('en-US', { ...opts, second: '2-digit' });
+  const secs = s.match(/:(\d{2})\s/)?.[1] || sec;
+  document.getElementById('clock').innerHTML = `${h}<span class="seconds">:${secs} ${ampm}</span>`;
+
+  const dateStr = now.toLocaleDateString('en-US', { ...opts, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('dateDisplay').textContent = dateStr;
+  document.getElementById('todayDate').textContent = dateStr;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Last Update Timer ──
+setInterval(() => {
+  if (!lastUpdateTime) return;
+  const ago = Math.floor((Date.now() - lastUpdateTime) / 1000);
+  document.getElementById('lastUpdate').textContent = `Updated ${ago}s ago`;
+}, 1000);
+
+// ── Screen Navigation ──
+function showScreen(index) {
+  currentScreen = index;
+  document.querySelectorAll('.screen').forEach((s, i) => s.classList.toggle('active', i === index));
+  document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === index));
+}
+
+function nextScreen() {
+  showScreen((currentScreen + 1) % totalScreens);
+}
+
+function startRotation() {
+  stopRotation();
+  rotateTimer = setInterval(nextScreen, ROTATE_INTERVAL);
+}
+
+function stopRotation() {
+  if (rotateTimer) { clearInterval(rotateTimer); rotateTimer = null; }
+}
+
+function togglePause() {
+  paused = !paused;
+  if (paused) { stopRotation(); } else { startRotation(); }
+  document.getElementById('pausedBadge').classList.toggle('visible', paused);
+}
+
+document.querySelectorAll('.nav-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    showScreen(parseInt(dot.dataset.screen));
+    if (!paused) { startRotation(); }
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight') { nextScreen(); if (!paused) startRotation(); }
+  else if (e.key === 'ArrowLeft') { showScreen((currentScreen - 1 + totalScreens) % totalScreens); if (!paused) startRotation(); }
+  else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+});
+
+// ── Chime ──
+function playChime() {
+  try {
+    if (!chimeCtx) chimeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = chimeCtx.createOscillator();
+    const gain = chimeCtx.createGain();
+    osc.connect(gain);
+    gain.connect(chimeCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, chimeCtx.currentTime);
+    osc.frequency.setValueAtTime(1100, chimeCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.08, chimeCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, chimeCtx.currentTime + 0.5);
+    osc.start(chimeCtx.currentTime);
+    osc.stop(chimeCtx.currentTime + 0.5);
+  } catch {}
+}
+
+// ── Time Helpers ──
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function priorityClass(p) {
+  if (typeof p === 'string') {
+    const l = p.toLowerCase();
+    if (l.includes('critical') || l.includes('urgent')) return 'priority-critical';
+    if (l.includes('high') || l === '3') return 'priority-3';
+    if (l.includes('normal') || l === '2') return 'priority-2';
+    return 'priority-1';
+  }
+  if (p >= 3) return 'priority-3';
+  if (p === 2) return 'priority-2';
+  return 'priority-1';
+}
+
+// ── Render Functions ──
+function renderTickets(tickets, stats) {
+  document.getElementById('badgeNew').textContent = stats?.new || 0;
+  document.getElementById('badgeOpen').textContent = stats?.open || 0;
+  document.getElementById('badgePending').textContent = stats?.pending || 0;
+
+  const el = document.getElementById('ticketList');
+
+  if (!tickets || tickets.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">&#10003;</div>
+        <div class="empty-text">All Clear</div>
+        <div class="empty-sub">No open tickets right now</div>
+      </div>`;
+    return;
+  }
+
+  const newIds = new Set(tickets.map(t => t.id));
+  const brandNew = tickets.filter(t => !previousTicketIds.has(t.id) && previousTicketIds.size > 0);
+  if (brandNew.length > 0) playChime();
+  previousTicketIds = newIds;
+
+  el.innerHTML = tickets.map(t => {
+    const isNew = (t.state === 'new' || t.state === 1 || String(t.state).toLowerCase().includes('new'));
+    return `
+    <div class="ticket-row ${isNew ? 'is-new' : ''}">
+      <div class="ticket-num">#${t.number || t.id}</div>
+      <div class="ticket-title">${esc(t.title)}</div>
+      <div class="ticket-customer">${esc(t.customer || 'Unknown')}</div>
+      <div class="ticket-time">${timeAgo(t.created_at)}</div>
+      <div class="priority-dot ${priorityClass(t.priority)}"></div>
+    </div>`;
+  }).join('');
+}
+
+function renderDevices(agents, alerts) {
+  const statsEl = document.getElementById('deviceStats');
+  const a = agents || { total: 0, online: 0, offline: 0, agents: [] };
+
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-value total">${a.total}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-value online">${a.online}</div><div class="stat-label">Online</div></div>
+    <div class="stat-card"><div class="stat-value offline">${a.offline}</div><div class="stat-label">Offline</div></div>
+  `;
+
+  const gridEl = document.getElementById('deviceGrid');
+  const deviceList = a.agents || [];
+  gridEl.innerHTML = deviceList.map(d => `
+    <div class="device-card">
+      <div class="device-dot ${d.status === 'online' ? 'online' : 'offline'}"></div>
+      <div class="device-info">
+        <div class="device-host">${esc(d.hostname)}</div>
+        <div class="device-client">${esc(d.client || '')}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const alertsEl = document.getElementById('alertsSection');
+  const al = alerts || [];
+  if (al.length === 0) {
+    alertsEl.innerHTML = `
+      <div class="empty-state" style="padding:40px">
+        <div class="empty-icon" style="width:56px;height:56px;font-size:24px">&#10003;</div>
+        <div class="empty-text" style="font-size:16px">All Systems Healthy</div>
+        <div class="empty-sub">No active alerts</div>
+      </div>`;
+    return;
+  }
+
+  alertsEl.innerHTML = `
+    <div class="alerts-title">&#9888; Active Alerts (${al.length})</div>
+    ${al.map(a => {
+      const sev = (a.severity || a.alert_type || '').toLowerCase();
+      const isWarn = sev.includes('warn');
+      return `
+      <div class="alert-row ${isWarn ? 'warning' : ''}">
+        <div class="alert-sev ${isWarn ? 'warning' : 'error'}">${isWarn ? 'WARN' : 'CRIT'}</div>
+        <div class="alert-host">${esc(a.hostname)}</div>
+        <div class="alert-msg">${esc(a.message)}</div>
+        <div class="alert-time">${timeAgo(a.alert_time)}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function renderReminders(items) {
+  const el = document.getElementById('reminderList');
+  const rem = items || [];
+
+  if (rem.length === 0) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:13px">No reminders. Add one below.</div>';
+    return;
+  }
+
+  el.innerHTML = rem.map(r => `
+    <div class="reminder-item ${r.overdue ? 'overdue' : ''}">
+      <button class="reminder-check" onclick="completeReminder(${r.id}, this)" title="Complete">&#10003;</button>
+      <div class="reminder-content">
+        <div class="reminder-title">${esc(r.title)}</div>
+        <div class="reminder-meta">
+          ${r.due_date ? `<span>Due: ${r.due_date}</span>` : ''}
+          ${r.category && r.category !== 'general' ? `<span>${r.category}</span>` : ''}
+          ${r.carried_over > 0 ? `<span class="carried-badge">Carried ${r.carried_over}d</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+// ── Actions ──
+async function completeReminder(id, btn) {
+  btn.classList.add('completing');
+  try {
+    await fetch(`/api/reminders/${id}/complete`, { method: 'POST' });
+    setTimeout(() => btn.closest('.reminder-item').style.display = 'none', 400);
+  } catch {}
+}
+
+async function addReminder() {
+  const input = document.getElementById('newReminder');
+  const title = input.value.trim();
+  if (!title) return;
+  try {
+    await fetch('/api/reminders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, due_date: new Date().toISOString().split('T')[0] })
+    });
+    input.value = '';
+    fetchData();
+  } catch {}
+}
+
+document.getElementById('newReminder').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addReminder();
+});
+
+// ── Data Fetching ──
+function applyData(d) {
+  data = d;
+  lastUpdateTime = Date.now();
+  renderTickets(d.tickets, d.ticket_stats);
+  renderDevices(d.agents, d.alerts);
+  renderReminders(d.reminders);
+}
+
+async function fetchData() {
+  try {
+    const resp = await fetch(API_URL);
+    if (resp.ok) applyData(await resp.json());
+  } catch {}
+}
+
+// ── WebSocket ──
+function connectWS() {
+  try {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => {
+      document.getElementById('connDot').classList.add('connected');
+      document.getElementById('connLabel').textContent = 'LIVE';
+    };
+    ws.onmessage = (e) => {
+      try { applyData(JSON.parse(e.data)); } catch {}
+    };
+    ws.onclose = () => {
+      document.getElementById('connDot').classList.remove('connected');
+      document.getElementById('connLabel').textContent = 'RECONNECTING';
+      setTimeout(connectWS, 5000);
+    };
+    ws.onerror = () => ws.close();
+  } catch {
+    setTimeout(connectWS, 5000);
+  }
+}
+
+// ── Init ──
+fetchData();
+connectWS();
+startRotation();
+setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
