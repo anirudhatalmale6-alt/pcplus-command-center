@@ -164,6 +164,14 @@ font-size:13px;animation:pulse-border 3s ease-in-out infinite;
 border-left:3px solid var(--green);
 }
 .active-call-icon{color:var(--green);font-size:16px;flex-shrink:0}
+.incoming-row{
+display:flex;align-items:center;gap:12px;
+padding:10px 16px;border-radius:8px;margin-bottom:4px;
+background:rgba(37,150,190,.06);border:1px solid rgba(37,150,190,.1);
+font-size:13px;
+}
+.incoming-answered{font-family:var(--font-mono);font-size:11px;color:var(--green);min-width:100px}
+.incoming-dur{font-family:var(--font-mono);font-size:11px;color:var(--blue);min-width:60px;text-align:right}
 
 /* ── Device Grid ── */
 .stats-row{display:flex;gap:12px;margin-bottom:20px}
@@ -360,6 +368,68 @@ padding:60px 20px;gap:12px;text-align:center;
 .badge-warn{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(243,156,18,.2)}
 .badge-crit{background:var(--red-dim);color:var(--red);border:1px solid rgba(231,76,60,.2)}
 
+/* ── Remote Support Screen ── */
+.support-invite{
+padding:20px 24px;border-radius:12px;margin-bottom:20px;
+background:linear-gradient(135deg,var(--card) 0%,var(--card-elevated) 100%);
+border:1px solid var(--border-active);
+display:flex;align-items:center;gap:20px;
+}
+.invite-icon{
+width:52px;height:52px;border-radius:12px;
+background:linear-gradient(135deg,var(--blue),var(--green));
+display:grid;place-items:center;font-size:24px;color:#fff;flex-shrink:0;
+box-shadow:0 0 20px rgba(37,150,190,.2);
+}
+.invite-info{flex:1;min-width:0}
+.invite-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.invite-desc{font-size:12px;color:var(--text-mid);margin-bottom:8px}
+.invite-url{
+font-family:var(--font-mono);font-size:12px;color:var(--blue);
+background:rgba(37,150,190,.08);padding:8px 14px;border-radius:6px;
+border:1px solid rgba(37,150,190,.15);
+display:flex;align-items:center;gap:10px;word-break:break-all;
+}
+.invite-copy{
+padding:4px 12px;border-radius:4px;border:1px solid rgba(37,150,190,.3);
+background:rgba(37,150,190,.1);color:var(--blue);font-size:11px;font-weight:600;
+cursor:pointer;transition:all .2s;flex-shrink:0;font-family:var(--font-display);
+}
+.invite-copy:hover{background:rgba(37,150,190,.2);border-color:var(--blue)}
+
+.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px}
+.session-card{
+padding:16px 20px;border-radius:10px;
+background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;gap:14px;
+transition:all .3s;
+}
+.session-card:hover{border-color:var(--border-active);background:var(--card-elevated)}
+.session-card.online{border-left:3px solid var(--green)}
+.session-card.offline{border-left:3px solid var(--text-dim)}
+.session-status{
+width:42px;height:42px;border-radius:10px;
+display:grid;place-items:center;font-size:20px;flex-shrink:0;
+}
+.session-status.online{background:var(--green-dim);color:var(--green)}
+.session-status.offline{background:rgba(255,255,255,.04);color:var(--text-dim)}
+.session-info{flex:1;min-width:0}
+.session-name{font-size:15px;font-weight:600;font-family:var(--font-mono)}
+.session-os{font-size:11px;color:var(--text-mid);margin-top:2px}
+.session-meta{font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--font-mono)}
+.session-connect{
+padding:8px 16px;border-radius:6px;border:none;
+font-family:var(--font-display);font-size:12px;font-weight:600;
+cursor:pointer;transition:all .2s;text-decoration:none;display:inline-block;
+}
+.session-connect.online{background:var(--green);color:#fff}
+.session-connect.online:hover{background:#219a52;transform:translateY(-1px)}
+.session-connect.offline{background:rgba(255,255,255,.06);color:var(--text-dim);cursor:default}
+.empty-sessions{
+padding:60px 20px;text-align:center;
+border:1px dashed var(--border);border-radius:12px;
+}
+
 /* ── New Ticket Alert Banner ── */
 .alert-banner{
 position:fixed;top:0;left:0;right:0;z-index:1000;
@@ -431,6 +501,7 @@ display:none;pointer-events:none;
       <button class="nav-dot" data-screen="1" title="Managed Devices"></button>
       <button class="nav-dot" data-screen="2" title="Backup Status"></button>
       <button class="nav-dot" data-screen="3" title="Today's Tasks"></button>
+      <button class="nav-dot" data-screen="4" title="Remote Support"></button>
     </div>
     <div class="topbar-right">
       <div class="paused-badge" id="pausedBadge">PAUSED</div>
@@ -516,6 +587,23 @@ display:none;pointer-events:none;
         </div>
       </div>
     </div>
+
+    <!-- Screen 5: Remote Support -->
+    <div class="screen" id="screen4">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:rgba(37,150,190,.12);color:var(--blue)">&#128421;</div>
+          Remote Support
+        </div>
+        <div class="badges">
+          <div class="badge badge-ok"><span id="badgeSessionsOnline">0</span> Online</div>
+          <div class="badge badge-pending"><span id="badgeSessionsTotal">0</span> Total</div>
+        </div>
+      </div>
+      <div id="inviteSection"></div>
+      <div class="session-grid stagger" id="sessionGrid"></div>
+    </div>
+
   </div>
 
   <!-- Bottom Bar -->
@@ -538,7 +626,7 @@ const API_URL = '/api/dashboard';
 const TZ = 'America/Toronto';
 
 let currentScreen = 0;
-let totalScreens = 4;
+let totalScreens = 5;
 let paused = false;
 let rotateTimer = null;
 let ws = null;
@@ -765,14 +853,17 @@ function renderReminders(items) {
   `).join('');
 }
 
-function renderCalls(missed, active) {
+function renderCalls(missed, active, incoming) {
   const missedEl = document.getElementById('missedCallsSection');
   const activeEl = document.getElementById('activeCallsSection');
   const mc = missed || [];
   const ac = active || [];
+  const ic = incoming || [];
+
+  let html = '';
 
   if (ac.length > 0) {
-    activeEl.innerHTML = `
+    html += `
       <div class="missed-section">
         <div class="missed-title">&#9742; Active Calls (${ac.length})</div>
         ${ac.map(c => `
@@ -784,14 +875,31 @@ function renderCalls(missed, active) {
           </div>
         `).join('')}
       </div>`;
-  } else {
-    activeEl.innerHTML = '';
   }
+
+  if (ic.length > 0) {
+    html += `
+      <div class="missed-section">
+        <div class="missed-title">&#9742; Incoming Calls - Last 7 Days (${ic.length})</div>
+        ${ic.map(c => `
+          <div class="incoming-row">
+            <div style="color:var(--green);flex-shrink:0">&#10003;</div>
+            <div class="missed-name">${esc(c.caller_name || 'Unknown')}</div>
+            <div class="missed-number">${esc(c.caller_number)}</div>
+            <div class="incoming-answered">${esc(c.answered_by)} (${esc(c.extension)})</div>
+            <div class="incoming-dur">${esc(c.duration)}</div>
+            <div class="missed-time">${timeAgo(c.time)}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  activeEl.innerHTML = html;
 
   if (mc.length > 0) {
     missedEl.innerHTML = `
       <div class="missed-section">
-        <div class="missed-title">&#128308; Missed Calls (${mc.length})</div>
+        <div class="missed-title">&#128308; Missed Calls - Last 7 Days (${mc.length})</div>
         ${mc.map(c => `
           <div class="missed-row">
             <div class="missed-icon">&#128222;</div>
@@ -885,6 +993,68 @@ function renderBackups(backups) {
   `).join('');
 }
 
+function renderRemoteSupport(rs) {
+  const d = rs || { sessions: [], invite_url: '' };
+  const sessions = d.sessions || [];
+  const onlineCount = sessions.filter(s => s.online).length;
+
+  document.getElementById('badgeSessionsOnline').textContent = onlineCount;
+  document.getElementById('badgeSessionsTotal').textContent = sessions.length;
+
+  const inviteEl = document.getElementById('inviteSection');
+  if (d.invite_url) {
+    inviteEl.innerHTML = `
+      <div class="support-invite">
+        <div class="invite-icon">&#128279;</div>
+        <div class="invite-info">
+          <div class="invite-title">Customer Support Invite Link</div>
+          <div class="invite-desc">Share this link with customers to install the remote support agent on their device</div>
+          <div class="invite-url">
+            <span id="inviteUrlText">${esc(d.invite_url)}</span>
+            <button class="invite-copy" onclick="copyInviteUrl()">COPY</button>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    inviteEl.innerHTML = '';
+  }
+
+  const gridEl = document.getElementById('sessionGrid');
+  if (sessions.length === 0) {
+    gridEl.innerHTML = `
+      <div class="empty-sessions" style="grid-column:1/-1">
+        <div class="empty-icon" style="width:64px;height:64px;font-size:28px;margin:0 auto 12px;border-radius:50%;background:var(--blue-dim);border:2px solid rgba(37,150,190,.2);display:grid;place-items:center;color:var(--blue)">&#128421;</div>
+        <div class="empty-text" style="font-size:18px;margin-bottom:4px">No Active Support Sessions</div>
+        <div class="empty-sub" style="font-size:13px;color:var(--text-dim)">Devices will appear here when customers install via the invite link</div>
+      </div>`;
+    return;
+  }
+
+  gridEl.innerHTML = sessions.map(s => `
+    <div class="session-card ${s.online ? 'online' : 'offline'}">
+      <div class="session-status ${s.online ? 'online' : 'offline'}">${s.online ? '&#128994;' : '&#9899;'}</div>
+      <div class="session-info">
+        <div class="session-name">${esc(s.name)}</div>
+        ${s.os ? `<div class="session-os">${esc(s.os)}</div>` : ''}
+        <div class="session-meta">${s.online ? 'Connected' : (s.last_seen ? 'Last seen ' + timeAgo(s.last_seen) : 'Offline')}${s.ip ? ' &middot; ' + esc(s.ip) : ''}</div>
+      </div>
+      <a class="session-connect ${s.online ? 'online' : 'offline'}" ${s.online ? 'href="' + esc(s.connect_url) + '" target="_blank"' : ''}>
+        ${s.online ? 'CONNECT' : 'OFFLINE'}
+      </a>
+    </div>
+  `).join('');
+}
+
+function copyInviteUrl() {
+  const url = document.getElementById('inviteUrlText')?.textContent;
+  if (url) {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.querySelector('.invite-copy');
+      if (btn) { btn.textContent = 'COPIED!'; setTimeout(() => btn.textContent = 'COPY', 2000); }
+    }).catch(() => {});
+  }
+}
+
 function esc(s) {
   if (!s) return '';
   const d = document.createElement('div');
@@ -925,11 +1095,12 @@ function applyData(d) {
   data = d;
   lastUpdateTime = Date.now();
   renderTickets(d.tickets, d.ticket_stats);
-  renderCalls(d.missed_calls, d.active_calls);
+  renderCalls(d.missed_calls, d.active_calls, d.incoming_calls);
   renderDevices(d.agents, d.alerts);
   renderBackups(d.backups);
   renderAppointments(d.appointments);
   renderReminders(d.reminders);
+  renderRemoteSupport(d.remote_support);
 }
 
 async function fetchData() {

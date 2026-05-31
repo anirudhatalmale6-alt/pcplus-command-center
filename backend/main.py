@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral
 
 
 class ReminderCreate(BaseModel):
@@ -39,11 +39,13 @@ async def refresh_data():
 
             appointments_task = calcom.get_todays_appointments()
             missed_task = threecx.get_missed_calls()
+            incoming_task = threecx.get_incoming_calls()
             active_calls_task = threecx.get_active_calls()
+            mesh_task = meshcentral.get_support_sessions()
 
-            tickets, stats, agents, alerts, backups, appointments, missed, active_calls = await asyncio.gather(
+            tickets, stats, agents, alerts, backups, appointments, missed, incoming, active_calls, mesh = await asyncio.gather(
                 tickets_task, stats_task, agents_task, alerts_task, backups_task,
-                appointments_task, missed_task, active_calls_task,
+                appointments_task, missed_task, incoming_task, active_calls_task, mesh_task,
                 return_exceptions=True
             )
 
@@ -55,7 +57,9 @@ async def refresh_data():
                 "backups": backups if not isinstance(backups, Exception) else {"configured": False},
                 "appointments": appointments if not isinstance(appointments, Exception) else [],
                 "missed_calls": missed if not isinstance(missed, Exception) else [],
+                "incoming_calls": incoming if not isinstance(incoming, Exception) else [],
                 "active_calls": active_calls if not isinstance(active_calls, Exception) else [],
+                "remote_support": mesh if not isinstance(mesh, Exception) else {"sessions": [], "invite_url": ""},
                 "reminders": reminders.get_reminders(),
                 "updated_at": datetime.now().isoformat(),
             }
@@ -133,6 +137,11 @@ async def backup_status():
 @app.get("/api/appointments")
 async def appointments():
     return await calcom.get_upcoming_appointments()
+
+
+@app.get("/api/remote-support")
+async def remote_support():
+    return await meshcentral.get_support_sessions()
 
 
 @app.get("/api/reminders")
