@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PC Plus - Fleet Benchmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--navy:#0a1628;--navy-deep:#060e1a;--card:#0f1d32;--card-elevated:#132743;
+--blue:#2596be;--blue-dim:rgba(37,150,190,.15);--blue-glow:rgba(37,150,190,.3);
+--green:#27ae60;--green-dim:rgba(39,174,96,.12);
+--red:#e74c3c;--red-dim:rgba(231,76,60,.12);
+--orange:#f39c12;--orange-dim:rgba(243,156,18,.12);
+--purple:#9b59b6;--purple-dim:rgba(155,89,182,.12);
+--text:#e8edf3;--text-mid:#8899aa;--text-dim:#4a5e74;
+--border:rgba(37,150,190,.08);--border-active:rgba(37,150,190,.25);
+--font:'DM Sans',system-ui,sans-serif;
+--mono:'JetBrains Mono',monospace;
+}
+html{background:var(--navy-deep);color:var(--text);font-family:var(--font);scroll-behavior:smooth}
+body{
+min-height:100vh;
+background:
+  radial-gradient(ellipse 80% 60% at 20% 10%,rgba(37,150,190,.04) 0%,transparent 70%),
+  radial-gradient(ellipse 60% 50% at 80% 90%,rgba(39,174,96,.03) 0%,transparent 70%),
+  linear-gradient(180deg,#060e1a 0%,#0a1628 40%,#0d1b30 100%);
+}
+
+.topbar{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 32px;
+background:linear-gradient(180deg,rgba(6,14,26,.9) 0%,rgba(6,14,26,.4) 100%);
+border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;
+backdrop-filter:blur(10px);
+}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue-glow),transparent)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--blue));display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:16px;color:#fff}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:.5px}
+.brand-sub{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--blue);margin-top:1px}
+.nav-links{display:flex;gap:6px}
+.nav-link{padding:6px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-mid);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s}
+.nav-link:hover,.nav-link.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(37,150,190,.3)}
+.topbar-meta{display:flex;align-items:center;gap:16px}
+.status-text{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
+.container{max-width:1400px;margin:0 auto;padding:24px 32px}
+@media(max-width:768px){.container{padding:16px}}
+
+/* Loading */
+.loading{text-align:center;padding:80px 20px;color:var(--text-mid)}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Summary Cards */
+.summary-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px}
+.summary-card{
+padding:16px 20px;border-radius:10px;
+background:var(--card);border:1px solid var(--border);text-align:center;
+}
+.summary-val{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1}
+.summary-val.blue{color:var(--blue)}
+.summary-val.green{color:var(--green)}
+.summary-val.red{color:var(--red)}
+.summary-val.orange{color:var(--orange)}
+.summary-val.purple{color:var(--purple)}
+.summary-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:6px}
+
+/* PC Plus Impact Section */
+.impact-section{
+padding:20px 24px;border-radius:12px;margin-bottom:28px;
+background:linear-gradient(135deg,var(--card) 0%,var(--card-elevated) 100%);
+border:1px solid var(--border-active);
+}
+.impact-title{font-size:16px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.impact-sub{font-size:12px;color:var(--text-mid);margin-bottom:16px}
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.impact-stat{text-align:center}
+.impact-val{font-family:var(--mono);font-size:24px;font-weight:700}
+.impact-label{font-size:11px;color:var(--text-dim);margin-top:2px}
+
+/* Filters */
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.filter-label{font-size:12px;color:var(--text-dim);margin-right:4px}
+.filter-btn{
+padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+background:transparent;color:var(--text-mid);font-family:var(--font);
+font-size:12px;cursor:pointer;transition:all .2s;
+}
+.filter-btn:hover,.filter-btn.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(37,150,190,.3)}
+.sort-select{
+padding:6px 12px;border-radius:6px;border:1px solid var(--border);
+background:var(--card);color:var(--text);font-family:var(--mono);
+font-size:12px;cursor:pointer;outline:none;
+}
+
+/* Section Header */
+.section-hdr{
+font-size:16px;font-weight:700;margin:24px 0 16px;
+display:flex;align-items:center;gap:10px;
+padding-bottom:8px;border-bottom:1px solid var(--border);
+}
+.section-hdr .dot{width:10px;height:10px;border-radius:3px}
+.section-count{font-family:var(--mono);font-size:12px;color:var(--text-dim);background:rgba(255,255,255,.04);padding:2px 10px;border-radius:4px;margin-left:auto}
+
+/* Agent Cards */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px}
+@media(max-width:500px){.agent-grid{grid-template-columns:1fr}}
+.agent-card{
+padding:18px 20px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+transition:all .3s;cursor:pointer;
+}
+.agent-card:hover{border-color:var(--border-active);background:var(--card-elevated)}
+.agent-card.offline{opacity:.5}
+.agent-card.expanded{border-color:var(--blue);box-shadow:0 0 20px rgba(37,150,190,.1)}
+.agent-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.agent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.agent-dot.online{background:var(--green);box-shadow:0 0 8px rgba(39,174,96,.4)}
+.agent-dot.offline{background:var(--red)}
+.agent-dot.overdue{background:var(--orange)}
+.agent-hostname{font-family:var(--mono);font-size:16px;font-weight:700;flex:1}
+.agent-pcplus-badge{
+font-family:var(--mono);font-size:10px;font-weight:600;
+padding:3px 8px;border-radius:4px;
+}
+.agent-pcplus-badge.installed{background:var(--green-dim);color:var(--green)}
+.agent-pcplus-badge.none{background:rgba(255,255,255,.04);color:var(--text-dim)}
+.agent-specs{font-size:11px;color:var(--text-dim);margin-bottom:10px}
+.agent-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.agent-metric{text-align:center;padding:8px;border-radius:6px;background:rgba(255,255,255,.02)}
+.agent-metric-val{font-family:var(--mono);font-size:16px;font-weight:700}
+.agent-metric-label{font-size:10px;color:var(--text-dim);margin-top:2px}
+
+/* Expanded detail */
+.agent-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none}
+.agent-card.expanded .agent-detail{display:block}
+.detail-section{margin-bottom:10px}
+.detail-title{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.proc-row{
+display:flex;align-items:center;gap:8px;
+padding:4px 8px;border-radius:4px;margin-bottom:2px;
+font-size:12px;font-family:var(--mono);
+}
+.proc-row.pcplus{background:var(--blue-dim);border-left:2px solid var(--blue)}
+.proc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proc-val{color:var(--text-mid);flex-shrink:0}
+.disk-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px}
+.disk-bar-wrap{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
+.disk-bar{height:100%;border-radius:3px}
+.disk-label{font-family:var(--mono);color:var(--text-dim);min-width:40px}
+.disk-pct{font-family:var(--mono);font-weight:600;min-width:35px;text-align:right}
+
+/* Comparison Table */
+.compare-table{width:100%;border-collapse:separate;border-spacing:0 4px;margin-bottom:24px}
+.compare-table th{
+font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+color:var(--text-dim);text-align:left;padding:8px 12px;cursor:pointer;user-select:none;
+}
+.compare-table th:hover{color:var(--blue)}
+.compare-table th.right{text-align:right}
+.compare-tr{background:var(--card);transition:all .3s}
+.compare-tr:hover{background:var(--card-elevated)}
+.compare-tr td{padding:10px 12px;border:1px solid var(--border);border-left:none;border-right:none;font-size:13px}
+.compare-tr td:first-child{border-left:1px solid var(--border);border-radius:8px 0 0 8px}
+.compare-tr td:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0}
+.compare-hostname{font-family:var(--mono);font-weight:600}
+.compare-val{font-family:var(--mono);text-align:right}
+.bar-cell{min-width:100px}
+.mini-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
+.mini-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+.footer{margin-top:40px;padding:16px 32px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--text-dim)}
+
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text-dim);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">PC</div>
+    <div>
+      <div class="brand-name">PC Plus Computing</div>
+      <div class="brand-sub">Command Center</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/benchmark.html" class="nav-link">Server</a>
+    <a href="/fleet.html" class="nav-link active">Fleet</a>
+  </div>
+  <div class="topbar-meta">
+    <span class="status-text" id="statusText">Loading...</span>
+    <button class="nav-link" onclick="fetchData()" style="font-size:11px">REFRESH</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="content">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <div>Collecting metrics from all agents...</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:8px">This may take 30-60 seconds on first load</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TZ = 'America/Vancouver';
+let allData = null;
+let currentSort = 'pcplus_mem';
+let currentView = 'cards';
+let currentFilter = 'all';
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function fmtMem(mb) { return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : Math.round(mb) + ' MB'; }
+function timeAgo(d) {
+  if (!d) return '';
+  const diff = Date.now() - new Date(d).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+function sortAgents(agents, sortKey) {
+  const s = [...agents];
+  switch (sortKey) {
+    case 'pcplus_mem': return s.sort((a, b) => (b.pcplus_mem_mb || 0) - (a.pcplus_mem_mb || 0));
+    case 'pcplus_cpu': return s.sort((a, b) => (b.pcplus_cpu_pct || 0) - (a.pcplus_cpu_pct || 0));
+    case 'total_mem': return s.sort((a, b) => (b.total_mem_used_mb || 0) - (a.total_mem_used_mb || 0));
+    case 'total_cpu': return s.sort((a, b) => (b.total_cpu_pct || 0) - (a.total_cpu_pct || 0));
+    case 'hostname': return s.sort((a, b) => (a.hostname || '').localeCompare(b.hostname || ''));
+    case 'ram': return s.sort((a, b) => (b.total_ram || 0) - (a.total_ram || 0));
+    default: return s;
+  }
+}
+
+function filterAgents(agents, filter) {
+  switch (filter) {
+    case 'online': return agents.filter(a => a.status === 'online');
+    case 'pcplus': return agents.filter(a => (a.pcplus_mem_mb || 0) > 0);
+    case 'surrey': return agents.filter(a => (a.site || '').toLowerCase().includes('surrey'));
+    default: return agents;
+  }
+}
+
+function render(data) {
+  allData = data;
+  const summary = data.summary || {};
+  const agents = filterAgents(sortAgents(data.agents || [], currentSort), currentFilter);
+  const maxPcplusMem = Math.max(...agents.map(a => a.pcplus_mem_mb || 0), 1);
+  const maxPcplusCpu = Math.max(...agents.map(a => a.pcplus_cpu_pct || 0), 1);
+
+  document.getElementById('statusText').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  let html = `
+    <div style="font-size:28px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-size:20px;background:var(--purple-dim);color:var(--purple);flex-shrink:0">&#9881;</div>
+      Fleet Benchmark
+    </div>
+    <div style="font-size:13px;color:var(--text-mid);margin-bottom:24px;padding-left:52px">
+      PC Plus Computing Tray + Endpoint resource usage across all managed PCs
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-card"><div class="summary-val blue">${summary.total || 0}</div><div class="summary-label">Total Agents</div></div>
+      <div class="summary-card"><div class="summary-val green">${summary.online || 0}</div><div class="summary-label">Online</div></div>
+      <div class="summary-card"><div class="summary-val red">${summary.offline || 0}</div><div class="summary-label">Offline</div></div>
+      <div class="summary-card"><div class="summary-val purple">${summary.with_pcplus || 0}</div><div class="summary-label">With PC Plus</div></div>
+      <div class="summary-card"><div class="summary-val orange">${fmtMem(summary.avg_pcplus_mem_mb || 0)}</div><div class="summary-label">Avg PCPlus RAM</div></div>
+      <div class="summary-card"><div class="summary-val blue">${summary.avg_pcplus_cpu_pct || 0}%</div><div class="summary-label">Avg PCPlus CPU</div></div>
+    </div>
+
+    <div class="impact-section">
+      <div class="impact-title">&#128202; PC Plus Software Impact</div>
+      <div class="impact-sub">Resource usage of PCPlusTray.exe + PCPlusService.exe across all online machines</div>
+      <div class="impact-grid">
+        <div class="impact-stat">
+          <div class="impact-val" style="color:var(--orange)">${fmtMem(summary.avg_pcplus_mem_mb || 0)}</div>
+          <div class="impact-label">Average RAM per PC</div>
+        </div>
+        <div class="impact-stat">
+          <div class="impact-val" style="color:var(--red)">${fmtMem(summary.max_pcplus_mem_mb || 0)}</div>
+          <div class="impact-label">Max RAM (worst case)</div>
+        </div>
+        <div class="impact-stat">
+          <div class="impact-val" style="color:var(--blue)">${summary.avg_pcplus_cpu_pct || 0}%</div>
+          <div class="impact-label">Average CPU per PC</div>
+        </div>
+        <div class="impact-stat">
+          <div class="impact-val" style="color:var(--purple)">${summary.max_pcplus_cpu_mb || 0}%</div>
+          <div class="impact-label">Max CPU (worst case)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">All</button>
+      <button class="filter-btn ${currentFilter === 'online' ? 'active' : ''}" onclick="setFilter('online')">Online</button>
+      <button class="filter-btn ${currentFilter === 'pcplus' ? 'active' : ''}" onclick="setFilter('pcplus')">Has PC Plus</button>
+      <button class="filter-btn ${currentFilter === 'surrey' ? 'active' : ''}" onclick="setFilter('surrey')">Surrey Home</button>
+      <span style="margin-left:auto"></span>
+      <span class="filter-label">Sort:</span>
+      <select class="sort-select" onchange="setSort(this.value)">
+        <option value="pcplus_mem" ${currentSort === 'pcplus_mem' ? 'selected' : ''}>PCPlus RAM (high first)</option>
+        <option value="pcplus_cpu" ${currentSort === 'pcplus_cpu' ? 'selected' : ''}>PCPlus CPU (high first)</option>
+        <option value="total_mem" ${currentSort === 'total_mem' ? 'selected' : ''}>Total RAM Used</option>
+        <option value="total_cpu" ${currentSort === 'total_cpu' ? 'selected' : ''}>Total CPU Used</option>
+        <option value="hostname" ${currentSort === 'hostname' ? 'selected' : ''}>Hostname (A-Z)</option>
+        <option value="ram" ${currentSort === 'ram' ? 'selected' : ''}>Total RAM (most first)</option>
+      </select>
+      <span class="filter-label">View:</span>
+      <button class="filter-btn ${currentView === 'cards' ? 'active' : ''}" onclick="setView('cards')">Cards</button>
+      <button class="filter-btn ${currentView === 'table' ? 'active' : ''}" onclick="setView('table')">Table</button>
+    </div>`;
+
+  if (currentView === 'table') {
+    html += `
+    <table class="compare-table">
+      <thead><tr>
+        <th>PC</th>
+        <th>Status</th>
+        <th>RAM</th>
+        <th>PCPlus RAM</th>
+        <th class="bar-cell">PCPlus RAM</th>
+        <th class="right">PCPlus CPU</th>
+        <th class="bar-cell">PCPlus CPU</th>
+        <th class="right">Procs</th>
+        <th class="right">Total CPU</th>
+      </tr></thead>
+      <tbody>
+      ${agents.map(a => {
+        const memPct = maxPcplusMem > 0 ? ((a.pcplus_mem_mb || 0) / maxPcplusMem * 100) : 0;
+        const cpuPct = maxPcplusCpu > 0 ? ((a.pcplus_cpu_pct || 0) / maxPcplusCpu * 100) : 0;
+        const memColor = (a.pcplus_mem_mb||0) > 200 ? 'var(--orange)' : (a.pcplus_mem_mb||0) > 100 ? 'var(--blue)' : 'var(--green)';
+        const cpuColor = (a.pcplus_cpu_pct||0) > 5 ? 'var(--red)' : (a.pcplus_cpu_pct||0) > 2 ? 'var(--orange)' : 'var(--blue)';
+        return `<tr class="compare-tr">
+          <td class="compare-hostname">${esc(a.hostname)}</td>
+          <td><span style="color:${a.status === 'online' ? 'var(--green)' : 'var(--red)'}">${a.status}</span></td>
+          <td class="compare-val">${a.total_ram || '?'} GB</td>
+          <td class="compare-val" style="color:${memColor}">${fmtMem(a.pcplus_mem_mb || 0)}</td>
+          <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${memPct}%;background:${memColor}"></div></div></td>
+          <td class="compare-val" style="color:${cpuColor}">${a.pcplus_cpu_pct || 0}%</td>
+          <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${cpuPct}%;background:${cpuColor}"></div></div></td>
+          <td class="compare-val">${a.pcplus_processes ? a.pcplus_processes.length : 0}</td>
+          <td class="compare-val">${a.total_cpu_pct || 0}%</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+  } else {
+    html += `
+    <div class="section-hdr">
+      <div class="dot" style="background:var(--blue)"></div>
+      All Agents
+      <span class="section-count">${agents.length} shown</span>
+    </div>
+    <div class="agent-grid">
+    ${agents.map(a => {
+      const isOnline = a.status === 'online';
+      const hasPcplus = (a.pcplus_mem_mb || 0) > 0;
+      const pcplusProcs = a.pcplus_processes || [];
+      const topProcs = a.top_processes || [];
+      const disks = a.disks || [];
+      return `
+      <div class="agent-card ${isOnline ? '' : 'offline'}" onclick="this.classList.toggle('expanded')">
+        <div class="agent-top">
+          <div class="agent-dot ${a.status}"></div>
+          <div class="agent-hostname">${esc(a.hostname)}</div>
+          <span class="agent-pcplus-badge ${hasPcplus ? 'installed' : 'none'}">${hasPcplus ? 'PC PLUS' : 'NO APP'}</span>
+        </div>
+        <div class="agent-specs">
+          ${esc(a.make_model || '')} ${a.total_ram ? '&middot; ' + a.total_ram + ' GB RAM' : ''} ${a.logged_user ? '&middot; ' + esc(a.logged_user) : ''}
+          ${!isOnline ? '&middot; Last seen ' + timeAgo(a.last_seen) : ''}
+        </div>
+        ${isOnline ? `
+        <div class="agent-metrics">
+          <div class="agent-metric">
+            <div class="agent-metric-val" style="color:${(a.pcplus_mem_mb||0) > 200 ? 'var(--orange)' : 'var(--blue)'}">${fmtMem(a.pcplus_mem_mb || 0)}</div>
+            <div class="agent-metric-label">PCPlus RAM</div>
+          </div>
+          <div class="agent-metric">
+            <div class="agent-metric-val" style="color:${(a.pcplus_cpu_pct||0) > 5 ? 'var(--red)' : 'var(--blue)'}">${a.pcplus_cpu_pct || 0}%</div>
+            <div class="agent-metric-label">PCPlus CPU</div>
+          </div>
+          <div class="agent-metric">
+            <div class="agent-metric-val">${a.process_count || 0}</div>
+            <div class="agent-metric-label">Processes</div>
+          </div>
+        </div>
+        <div class="agent-detail">
+          ${pcplusProcs.length > 0 ? `
+          <div class="detail-section">
+            <div class="detail-title">PC Plus Processes</div>
+            ${pcplusProcs.map(p => `
+              <div class="proc-row pcplus">
+                <span class="proc-name">${esc(p.name)}</span>
+                <span class="proc-val">${fmtMem(p.mem_mb)} / ${p.cpu_pct}% cpu</span>
+                <span class="proc-val" style="font-size:10px;color:var(--text-dim)">${esc(p.user?.split('\\\\').pop() || '')}</span>
+              </div>`).join('')}
+          </div>` : ''}
+          ${topProcs.length > 0 ? `
+          <div class="detail-section">
+            <div class="detail-title">Top Processes</div>
+            ${topProcs.slice(0, 8).map(p => `
+              <div class="proc-row">
+                <span class="proc-name">${esc(p.name)}</span>
+                <span class="proc-val">${fmtMem(p.mem_mb)} / ${p.cpu_pct}% cpu</span>
+              </div>`).join('')}
+          </div>` : ''}
+          ${disks.length > 0 ? `
+          <div class="detail-section">
+            <div class="detail-title">Disks</div>
+            ${disks.map(d => `
+              <div class="disk-row">
+                <span class="disk-label">${esc(d.device)}</span>
+                <div class="disk-bar-wrap">
+                  <div class="disk-bar" style="width:${d.percent}%;background:${d.percent > 85 ? 'var(--red)' : d.percent > 70 ? 'var(--orange)' : 'var(--blue)'}"></div>
+                </div>
+                <span class="disk-pct">${d.percent}%</span>
+                <span style="font-size:11px;color:var(--text-dim)">${esc(d.used)} / ${esc(d.total)}</span>
+              </div>`).join('')}
+          </div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('')}
+    </div>`;
+  }
+
+  html += `<div class="footer">PC PLUS COMPUTING INC. &middot; Fleet Benchmark &middot; Click any card to expand details</div>`;
+  document.getElementById('content').innerHTML = html;
+}
+
+function setFilter(f) { currentFilter = f; if (allData) render(allData); }
+function setSort(s) { currentSort = s; if (allData) render(allData); }
+function setView(v) { currentView = v; if (allData) render(allData); }
+
+async function fetchData() {
+  document.getElementById('statusText').textContent = 'Collecting metrics...';
+  try {
+    const resp = await fetch('/api/fleet-benchmark');
+    if (resp.ok) render(await resp.json());
+    else document.getElementById('content').innerHTML = '<div class="loading" style="color:var(--red)">Error loading data. Check server logs.</div>';
+  } catch (e) {
+    document.getElementById('content').innerHTML = '<div class="loading" style="color:var(--red)">Connection error: ' + e.message + '</div>';
+  }
+}
+
+fetchData();
+</script>
+</body>
+</html>

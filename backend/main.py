@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral, benchmark
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral, benchmark, agent_benchmark
 
 
 class ReminderCreate(BaseModel):
@@ -149,6 +149,11 @@ async def remote_support():
 @app.get("/api/benchmark")
 async def server_benchmark():
     return await benchmark.get_server_benchmark()
+
+
+@app.get("/api/fleet-benchmark")
+async def fleet_benchmark(site: str = None):
+    return await agent_benchmark.get_fleet_benchmark(site)
 
 
 @app.get("/api/reminders")
