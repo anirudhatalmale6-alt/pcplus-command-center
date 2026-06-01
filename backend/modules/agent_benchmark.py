@@ -51,6 +51,7 @@ async def benchmark_agent(agent: dict):
         "logged_user": agent.get("logged_username", ""),
         "public_ip": agent.get("public_ip", ""),
         "local_ips": agent.get("local_ips", ""),
+        "agent_version": agent.get("version", ""),
         "disks": [],
         "pcplus_processes": [],
         "top_processes": [],
@@ -58,7 +59,10 @@ async def benchmark_agent(agent: dict):
         "total_cpu_pct": 0,
         "pcplus_mem_mb": 0,
         "pcplus_cpu_pct": 0,
+        "pcplus_tray_count": 0,
+        "pcplus_svc_count": 0,
         "process_count": 0,
+        "issues": [],
         "error": None,
     }
 
@@ -128,6 +132,22 @@ async def benchmark_agent(agent: dict):
         result["top_processes"] = sorted(
             others, key=lambda x: x["mem_mb"], reverse=True
         )[:15]
+
+        tray_count = sum(1 for p in pcplus_list if "tray" in p["name"].lower())
+        svc_count = sum(1 for p in pcplus_list if "service" in p["name"].lower())
+        result["pcplus_tray_count"] = tray_count
+        result["pcplus_svc_count"] = svc_count
+
+        issues = []
+        if tray_count > 1:
+            issues.append("Duplicate Tray")
+        if svc_count > 1:
+            issues.append("Duplicate Service")
+        if result["pcplus_mem_mb"] > 300:
+            issues.append("High Memory")
+        if result["pcplus_cpu_pct"] > 10:
+            issues.append("High CPU")
+        result["issues"] = issues
 
     except Exception as e:
         result["error"] = str(e)[:200]

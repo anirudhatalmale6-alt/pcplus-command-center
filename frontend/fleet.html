@@ -175,6 +175,68 @@ color:var(--text-dim);text-align:left;padding:8px 12px;cursor:pointer;user-selec
 .mini-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.04);overflow:hidden}
 .mini-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
 
+.issue-badge{
+display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;
+padding:2px 6px;border-radius:3px;margin:1px;
+background:var(--red-dim);color:var(--red);white-space:nowrap;
+}
+.compare-tr.issue-row{background:rgba(231,76,60,.04)}
+.compare-tr.issue-row:hover{background:rgba(231,76,60,.08)}
+
+/* Mobile Responsive */
+@media(max-width:900px){
+  .topbar{padding:10px 16px;flex-wrap:wrap;gap:8px}
+  .brand-name{font-size:13px}
+  .brand-sub{font-size:8px;letter-spacing:2px}
+  .brand-icon{width:32px;height:32px;font-size:13px}
+  .nav-links{gap:4px}
+  .nav-link{padding:5px 10px;font-size:11px}
+  .topbar-meta{width:100%;justify-content:space-between}
+  .container{padding:12px 12px}
+  .summary-row{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .summary-val{font-size:20px}
+  .summary-label{font-size:9px}
+  .summary-card{padding:10px 8px}
+  .impact-section{padding:14px 16px}
+  .impact-val{font-size:18px}
+  .impact-grid{grid-template-columns:repeat(2,1fr)}
+  .filters{gap:5px}
+  .filter-btn{padding:5px 10px;font-size:11px}
+  .sort-select{font-size:11px}
+  .agent-grid{grid-template-columns:1fr}
+  .agent-card{padding:14px 16px}
+  .agent-hostname{font-size:14px}
+  .agent-metrics{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .agent-metric-val{font-size:14px}
+  .compare-table th{font-size:9px;padding:6px 6px;letter-spacing:0}
+  .compare-tr td{padding:8px 6px;font-size:11px}
+  .bar-cell{min-width:50px}
+  .compare-hostname{font-size:12px}
+}
+@media(max-width:600px){
+  .topbar{padding:8px 10px}
+  .brand{gap:8px}
+  .brand-icon{width:28px;height:28px;font-size:11px;border-radius:7px}
+  .brand-name{font-size:12px}
+  .brand-sub{display:none}
+  .nav-links{gap:3px}
+  .nav-link{padding:4px 8px;font-size:10px}
+  .summary-row{grid-template-columns:repeat(3,1fr);gap:6px}
+  .summary-val{font-size:16px}
+  .summary-card{padding:8px 6px}
+  .impact-grid{grid-template-columns:1fr 1fr}
+  .impact-val{font-size:16px}
+  .impact-label{font-size:9px}
+  .filter-label{display:none}
+  .filter-btn{padding:4px 8px;font-size:10px}
+  .sort-select{font-size:10px;padding:4px 8px}
+  .agent-card{padding:12px}
+  .agent-hostname{font-size:13px}
+  .agent-metric-val{font-size:13px}
+  .agent-metric-label{font-size:9px}
+  .proc-row{font-size:11px;gap:4px}
+}
+
 .footer{margin-top:40px;padding:16px 32px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--text-dim)}
 
 ::-webkit-scrollbar{width:6px}
@@ -217,7 +279,7 @@ color:var(--text-dim);text-align:left;padding:8px 12px;cursor:pointer;user-selec
 const TZ = 'America/Vancouver';
 let allData = null;
 let currentSort = 'pcplus_mem';
-let currentView = 'cards';
+let currentView = 'table';
 let currentFilter = 'all';
 
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
@@ -246,11 +308,24 @@ function sortAgents(agents, sortKey) {
   }
 }
 
+function getIssues(a) {
+  if (a.issues && a.issues.length > 0) return a.issues;
+  const issues = [];
+  const trayCount = (a.pcplus_processes || []).filter(p => p.name.toLowerCase().includes('tray')).length;
+  const svcCount = (a.pcplus_processes || []).filter(p => p.name.toLowerCase().includes('service')).length;
+  if (trayCount > 1) issues.push('Duplicate Tray');
+  if (svcCount > 1) issues.push('Duplicate Service');
+  if ((a.pcplus_mem_mb || 0) > 300) issues.push('High Memory');
+  if ((a.pcplus_cpu_pct || 0) > 10) issues.push('High CPU');
+  return issues;
+}
+
 function filterAgents(agents, filter) {
   switch (filter) {
     case 'online': return agents.filter(a => a.status === 'online');
     case 'pcplus': return agents.filter(a => (a.pcplus_mem_mb || 0) > 0);
     case 'surrey': return agents.filter(a => (a.site || '').toLowerCase().includes('surrey'));
+    case 'issues': return agents.filter(a => getIssues(a).length > 0);
     default: return agents;
   }
 }
@@ -281,6 +356,7 @@ function render(data) {
       <div class="summary-card"><div class="summary-val purple">${summary.with_pcplus || 0}</div><div class="summary-label">With PC Plus</div></div>
       <div class="summary-card"><div class="summary-val orange">${fmtMem(summary.avg_pcplus_mem_mb || 0)}</div><div class="summary-label">Avg PCPlus RAM</div></div>
       <div class="summary-card"><div class="summary-val blue">${summary.avg_pcplus_cpu_pct || 0}%</div><div class="summary-label">Avg PCPlus CPU</div></div>
+      <div class="summary-card"><div class="summary-val red">${(data.agents || []).filter(a => getIssues(a).length > 0).length}</div><div class="summary-label">With Issues</div></div>
     </div>
 
     <div class="impact-section">
@@ -312,6 +388,7 @@ function render(data) {
       <button class="filter-btn ${currentFilter === 'online' ? 'active' : ''}" onclick="setFilter('online')">Online</button>
       <button class="filter-btn ${currentFilter === 'pcplus' ? 'active' : ''}" onclick="setFilter('pcplus')">Has PC Plus</button>
       <button class="filter-btn ${currentFilter === 'surrey' ? 'active' : ''}" onclick="setFilter('surrey')">Surrey Home</button>
+      <button class="filter-btn ${currentFilter === 'issues' ? 'active' : ''}" onclick="setFilter('issues')">Has Issues</button>
       <span style="margin-left:auto"></span>
       <span class="filter-label">Sort:</span>
       <select class="sort-select" onchange="setSort(this.value)">
@@ -329,38 +406,62 @@ function render(data) {
 
   if (currentView === 'table') {
     html += `
+    <div style="overflow-x:auto">
     <table class="compare-table">
       <thead><tr>
-        <th>PC</th>
+        <th>Device</th>
         <th>Status</th>
-        <th>RAM</th>
-        <th>PCPlus RAM</th>
-        <th class="bar-cell">PCPlus RAM</th>
+        <th>User</th>
+        <th class="right">Sys RAM</th>
+        <th class="right">PCPlus RAM</th>
+        <th class="bar-cell"></th>
         <th class="right">PCPlus CPU</th>
-        <th class="bar-cell">PCPlus CPU</th>
+        <th class="bar-cell"></th>
+        <th class="right">Tray</th>
+        <th class="right">Service</th>
         <th class="right">Procs</th>
         <th class="right">Total CPU</th>
+        <th>Issues</th>
+        <th>Version</th>
+        <th></th>
       </tr></thead>
       <tbody>
       ${agents.map(a => {
         const memPct = maxPcplusMem > 0 ? ((a.pcplus_mem_mb || 0) / maxPcplusMem * 100) : 0;
         const cpuPct = maxPcplusCpu > 0 ? ((a.pcplus_cpu_pct || 0) / maxPcplusCpu * 100) : 0;
-        const memColor = (a.pcplus_mem_mb||0) > 200 ? 'var(--orange)' : (a.pcplus_mem_mb||0) > 100 ? 'var(--blue)' : 'var(--green)';
-        const cpuColor = (a.pcplus_cpu_pct||0) > 5 ? 'var(--red)' : (a.pcplus_cpu_pct||0) > 2 ? 'var(--orange)' : 'var(--blue)';
-        return `<tr class="compare-tr">
+        const memColor = (a.pcplus_mem_mb||0) > 300 ? 'var(--red)' : (a.pcplus_mem_mb||0) > 200 ? 'var(--orange)' : (a.pcplus_mem_mb||0) > 100 ? 'var(--blue)' : 'var(--green)';
+        const cpuColor = (a.pcplus_cpu_pct||0) > 10 ? 'var(--red)' : (a.pcplus_cpu_pct||0) > 5 ? 'var(--orange)' : (a.pcplus_cpu_pct||0) > 2 ? 'var(--blue)' : 'var(--green)';
+        const trayCount = a.pcplus_tray_count || (a.pcplus_processes || []).filter(p => p.name.toLowerCase().includes('tray')).length;
+        const svcCount = a.pcplus_svc_count || (a.pcplus_processes || []).filter(p => p.name.toLowerCase().includes('service')).length;
+        const issues = a.issues || [];
+        if (!a.issues) {
+          if (trayCount > 1) issues.push('Duplicate Tray');
+          if (svcCount > 1) issues.push('Duplicate Service');
+          if ((a.pcplus_mem_mb||0) > 300) issues.push('High Memory');
+          if ((a.pcplus_cpu_pct||0) > 10) issues.push('High CPU');
+        }
+        const hasIssue = issues.length > 0;
+        return `<tr class="compare-tr${hasIssue ? ' issue-row' : ''}">
           <td class="compare-hostname">${esc(a.hostname)}</td>
-          <td><span style="color:${a.status === 'online' ? 'var(--green)' : 'var(--red)'}">${a.status}</span></td>
+          <td><span style="color:${a.status === 'online' ? 'var(--green)' : 'var(--red)'}">&#x25CF; ${a.status}</span></td>
+          <td style="font-size:11px;color:var(--text-mid)">${esc((a.logged_user || '').split('\\\\').pop() || '-')}</td>
           <td class="compare-val">${a.total_ram || '?'} GB</td>
           <td class="compare-val" style="color:${memColor}">${fmtMem(a.pcplus_mem_mb || 0)}</td>
           <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${memPct}%;background:${memColor}"></div></div></td>
           <td class="compare-val" style="color:${cpuColor}">${a.pcplus_cpu_pct || 0}%</td>
           <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${cpuPct}%;background:${cpuColor}"></div></div></td>
-          <td class="compare-val">${a.pcplus_processes ? a.pcplus_processes.length : 0}</td>
+          <td class="compare-val" style="color:${trayCount > 1 ? 'var(--red)' : 'var(--text-mid)'}">${trayCount}${trayCount > 1 ? ' !' : ''}</td>
+          <td class="compare-val" style="color:${svcCount > 1 ? 'var(--red)' : 'var(--text-mid)'}">${svcCount}${svcCount > 1 ? ' !' : ''}</td>
+          <td class="compare-val">${a.process_count || 0}</td>
           <td class="compare-val">${a.total_cpu_pct || 0}%</td>
+          <td>${issues.map(i => '<span class="issue-badge">' + esc(i) + '</span>').join(' ')}</td>
+          <td style="font-size:10px;color:var(--text-dim);font-family:var(--mono)">${esc(a.agent_version || '-')}</td>
+          <td><a href="/pc.html?id=${encodeURIComponent(a.agent_id)}" class="detail-link">DETAIL</a></td>
         </tr>`;
       }).join('')}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
   } else {
     html += `
     <div class="section-hdr">
@@ -383,6 +484,7 @@ function render(data) {
           <a href="/pc.html?id=${encodeURIComponent(a.agent_id)}" class="detail-link" onclick="event.stopPropagation()" title="Full diagnostics">DETAIL</a>
           <span class="agent-pcplus-badge ${hasPcplus ? 'installed' : 'none'}">${hasPcplus ? 'PC PLUS' : 'NO APP'}</span>
         </div>
+        ${(() => { const iss = getIssues(a); return iss.length > 0 ? '<div style="margin-bottom:6px">' + iss.map(i => '<span class="issue-badge">' + esc(i) + '</span>').join(' ') + '</div>' : ''; })()}
         <div class="agent-specs">
           ${esc(a.make_model || '')} ${a.total_ram ? '&middot; ' + a.total_ram + ' GB RAM' : ''} ${a.logged_user ? '&middot; ' + esc(a.logged_user) : ''}
           ${!isOnline ? '&middot; Last seen ' + timeAgo(a.last_seen) : ''}
@@ -460,6 +562,8 @@ async function fetchData() {
   }
 }
 
+// Auto-switch to cards on mobile
+if (window.innerWidth <= 768) currentView = 'cards';
 fetchData();
 </script>
 </body>
