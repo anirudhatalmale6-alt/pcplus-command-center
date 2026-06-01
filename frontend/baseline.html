@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baseline Comparison — PC Plus Command Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e17;--surface:#111827;--card:#1a2236;--border:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--accent:#3b82f6;--green:#22c55e;
+  --red:#ef4444;--amber:#f59e0b;--cyan:#06b6d4;--purple:#a855f7;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.topbar .logo{font-weight:700;font-size:15px;color:var(--accent);white-space:nowrap}
+.topbar nav{display:flex;gap:8px}
+.topbar nav a{padding:6px 14px;border-radius:6px;font-size:13px;color:var(--dim);transition:.2s}
+.topbar nav a:hover,.topbar nav a.active{background:var(--accent);color:#fff}
+
+.container{max-width:1400px;margin:0 auto;padding:20px 24px}
+@media(max-width:768px){.container{padding:12px}}
+
+h1{font-size:24px;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--dim);margin-bottom:24px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+
+.step-section{margin-bottom:32px}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:13px;margin-right:10px}
+.step-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center}
+
+select,input[type=text]{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;transition:.2s}
+select:focus,input:focus{border-color:var(--accent)}
+select{cursor:pointer;min-width:200px}
+
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{opacity:.85}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{opacity:.85}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--dim)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+
+.snapshot-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.snapshot-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;transition:.2s;position:relative}
+.snapshot-card:hover{border-color:var(--accent)}
+.snapshot-card.selected{border-color:var(--accent);box-shadow:0 0 12px rgba(59,130,246,.2)}
+.snapshot-card .sc-host{font-weight:700;font-size:14px;margin-bottom:4px}
+.snapshot-card .sc-label{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;background:rgba(59,130,246,.15);color:var(--accent);margin-bottom:6px}
+.snapshot-card .sc-label.before{background:rgba(245,158,11,.15);color:var(--amber)}
+.snapshot-card .sc-label.after{background:rgba(34,197,94,.15);color:var(--green)}
+.snapshot-card .sc-time{font-size:11px;color:var(--dim);margin-bottom:8px}
+.snapshot-card .sc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px}
+.snapshot-card .sc-stat{text-align:center}
+.snapshot-card .sc-stat .val{font-weight:700;font-size:14px}
+.snapshot-card .sc-stat .lbl{color:var(--dim);font-size:9px;text-transform:uppercase}
+.snapshot-card .sc-select{position:absolute;top:10px;right:10px;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px}
+
+.compare-section{display:none}
+.compare-section.visible{display:block}
+
+.delta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.delta-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.delta-card .d-label{font-size:10px;text-transform:uppercase;color:var(--dim);letter-spacing:.5px;margin-bottom:6px}
+.delta-card .d-values{display:flex;justify-content:center;align-items:center;gap:8px;font-size:13px}
+.delta-card .d-before{color:var(--amber)}
+.delta-card .d-arrow{color:var(--dim);font-size:10px}
+.delta-card .d-after{color:var(--green)}
+.delta-card .d-delta{font-size:18px;font-weight:700;margin-top:6px}
+.delta-positive{color:var(--red)}
+.delta-negative{color:var(--green)}
+.delta-zero{color:var(--dim)}
+
+.proc-table{width:100%;border-collapse:collapse;font-size:12px}
+.proc-table th{text-align:left;padding:8px 10px;background:var(--surface);color:var(--dim);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+.proc-table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.proc-table tr:hover td{background:rgba(59,130,246,.03)}
+.proc-table .delta-bar{width:80px;height:6px;border-radius:3px;background:var(--border);position:relative;overflow:hidden}
+.proc-table .delta-bar-fill{height:100%;border-radius:3px;position:absolute;top:0}
+
+.empty{text-align:center;padding:40px;color:var(--dim);font-size:14px}
+
+.status-msg{padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px}
+.status-msg.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--accent)}
+.status-msg.success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--green)}
+.status-msg.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+
+@media(max-width:768px){
+  .topbar{padding:10px 12px}
+  .topbar .logo{font-size:13px}
+  .topbar nav a{font-size:11px;padding:5px 10px}
+  .delta-grid{grid-template-columns:repeat(2,1fr)}
+  .snapshot-list{grid-template-columns:1fr}
+  .controls{flex-direction:column;align-items:stretch}
+  select{min-width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">PC PLUS COMMAND CENTER</div>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/benchmark.html">Server</a>
+    <a href="/fleet.html">Fleet</a>
+    <a class="active">Baseline</a>
+  </nav>
+</div>
+
+<div class="container">
+  <h1>Baseline Comparison</h1>
+  <div class="subtitle">Take snapshots before and after changes to measure exact resource impact</div>
+
+  <div id="statusMsg"></div>
+
+  <!-- Step 1: Select PC and Take Snapshot -->
+  <div class="step-section">
+    <div class="step-title"><span class="step-num">1</span> Take Snapshots</div>
+    <div class="card">
+      <div class="controls">
+        <select id="agentSelect"><option value="">Loading agents...</option></select>
+        <input type="text" id="labelInput" placeholder="Label (e.g. before-tray-stop, after-restart)" style="flex:1;min-width:200px">
+        <button class="btn btn-primary" onclick="takeSnapshot()" id="snapBtn">Take Snapshot</button>
+      </div>
+      <div style="font-size:12px;color:var(--dim)">
+        Workflow: Select a PC, take a "before" snapshot, make your change (stop tray, restart service, etc.), then take an "after" snapshot.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Select Snapshots to Compare -->
+  <div class="step-section">
+    <div class="step-title"><span class="step-num">2</span> Select Snapshots to Compare</div>
+    <div class="controls">
+      <select id="filterAgent" onchange="filterSnapshots()">
+        <option value="">All Machines</option>
+      </select>
+      <button class="btn btn-outline" onclick="loadSnapshots()">Refresh List</button>
+      <span style="margin-left:auto;font-size:12px;color:var(--dim)" id="selectHint">Click two snapshots to compare (Before then After)</span>
+    </div>
+    <div class="snapshot-list" id="snapshotList">
+      <div class="empty">Loading snapshots...</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-green" onclick="runCompare()" id="compareBtn" disabled>Compare Selected</button>
+      <button class="btn btn-outline" onclick="clearSelection()">Clear Selection</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Comparison Results -->
+  <div class="step-section compare-section" id="compareSection">
+    <div class="step-title"><span class="step-num">3</span> Comparison Results</div>
+
+    <div class="delta-grid" id="deltaGrid"></div>
+
+    <div class="card" style="max-height:500px;overflow-y:auto;padding:0">
+      <table class="proc-table">
+        <thead><tr>
+          <th>Process</th>
+          <th style="text-align:right">Before (MB)</th>
+          <th style="text-align:right">After (MB)</th>
+          <th style="text-align:right">Delta (MB)</th>
+          <th style="width:80px">Change</th>
+          <th style="text-align:right">CPU Before</th>
+          <th style="text-align:right">CPU After</th>
+          <th style="text-align:right">CPU Delta</th>
+        </tr></thead>
+        <tbody id="procChanges"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let agents = [];
+let snapshots = [];
+let selectedA = null;
+let selectedB = null;
+
+async function init() {
+  try {
+    const resp = await fetch('/api/fleet-benchmark');
+    const data = await resp.json();
+    agents = (data.agents || []).filter(a => a.status === 'online').sort((a, b) => a.hostname.localeCompare(b.hostname));
+    const sel = document.getElementById('agentSelect');
+    sel.innerHTML = '<option value="">-- Select a PC --</option>' +
+      agents.map(a => `<option value="${a.agent_id}">${esc(a.hostname)} (${a.total_ram}GB, ${a.status})</option>`).join('');
+
+    const filter = document.getElementById('filterAgent');
+    const hostnames = [...new Set(agents.map(a => a.hostname))];
+    filter.innerHTML = '<option value="">All Machines</option>' +
+      hostnames.map(h => `<option value="${h}">${esc(h)}</option>`).join('');
+  } catch (e) {
+    showStatus('Failed to load agents: ' + e.message, 'error');
+  }
+  loadSnapshots();
+}
+
+async function takeSnapshot() {
+  const agentId = document.getElementById('agentSelect').value;
+  const label = document.getElementById('labelInput').value.trim() || 'snapshot';
+  if (!agentId) { showStatus('Select a PC first', 'error'); return; }
+
+  const btn = document.getElementById('snapBtn');
+  btn.disabled = true;
+  btn.textContent = 'Taking snapshot...';
+  showStatus('Taking snapshot... this may take 30-60 seconds', 'info');
+
+  try {
+    const resp = await fetch(`/api/baseline/snapshot/${encodeURIComponent(agentId)}?label=${encodeURIComponent(label)}`, { method: 'POST' });
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    const data = await resp.json();
+    showStatus(`Snapshot taken: ${data.hostname} - ${data.pcplus_mem_mb} MB PCPlus, ${data.total_mem_mb} MB total, ${data.process_count} processes`, 'success');
+    loadSnapshots();
+  } catch (e) {
+    showStatus('Snapshot failed: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Take Snapshot';
+}
+
+async function loadSnapshots() {
+  try {
+    const resp = await fetch('/api/baseline/list');
+    snapshots = await resp.json();
+    renderSnapshots();
+  } catch (e) {
+    document.getElementById('snapshotList').innerHTML = '<div class="empty">Failed to load snapshots</div>';
+  }
+}
+
+function filterSnapshots() {
+  renderSnapshots();
+}
+
+function renderSnapshots() {
+  const filter = document.getElementById('filterAgent').value;
+  let filtered = snapshots;
+  if (filter) filtered = snapshots.filter(s => s.hostname === filter);
+
+  if (filtered.length === 0) {
+    document.getElementById('snapshotList').innerHTML = '<div class="empty">No snapshots yet. Take your first snapshot above.</div>';
+    return;
+  }
+
+  document.getElementById('snapshotList').innerHTML = filtered.map(s => {
+    const isA = selectedA === s.file;
+    const isB = selectedB === s.file;
+    const selClass = isA || isB ? ' selected' : '';
+    const selBadge = isA ? '<span class="sc-select" style="background:rgba(245,158,11,.2);color:var(--amber)">BEFORE</span>' :
+                     isB ? '<span class="sc-select" style="background:rgba(34,197,94,.2);color:var(--green)">AFTER</span>' : '';
+    return `<div class="snapshot-card${selClass}" onclick="selectSnapshot('${esc(s.file)}')">
+      ${selBadge}
+      <div class="sc-host">${esc(s.hostname)}</div>
+      <span class="sc-label">${esc(s.label)}</span>
+      <div class="sc-time">${new Date(s.timestamp).toLocaleString()}</div>
+      <div class="sc-stats">
+        <div class="sc-stat"><div class="val" style="color:var(--accent)">${s.pcplus_mem_mb}</div><div class="lbl">PCPlus MB</div></div>
+        <div class="sc-stat"><div class="val">${s.total_mem_mb}</div><div class="lbl">Total MB</div></div>
+        <div class="sc-stat"><div class="val" style="color:var(--cyan)">${s.process_count}</div><div class="lbl">Procs</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectSnapshot(file) {
+  if (!selectedA) {
+    selectedA = file;
+    document.getElementById('selectHint').textContent = 'Now click the "After" snapshot';
+  } else if (!selectedB && file !== selectedA) {
+    selectedB = file;
+    document.getElementById('selectHint').textContent = 'Ready to compare!';
+    document.getElementById('compareBtn').disabled = false;
+  } else {
+    selectedA = file;
+    selectedB = null;
+    document.getElementById('compareBtn').disabled = true;
+    document.getElementById('selectHint').textContent = 'Now click the "After" snapshot';
+  }
+  renderSnapshots();
+}
+
+function clearSelection() {
+  selectedA = null;
+  selectedB = null;
+  document.getElementById('compareBtn').disabled = true;
+  document.getElementById('selectHint').textContent = 'Click two snapshots to compare (Before then After)';
+  document.getElementById('compareSection').classList.remove('visible');
+  renderSnapshots();
+}
+
+async function runCompare() {
+  if (!selectedA || !selectedB) return;
+  try {
+    const resp = await fetch(`/api/baseline/compare?a=${encodeURIComponent(selectedA)}&b=${encodeURIComponent(selectedB)}`);
+    if (!resp.ok) throw new Error('API error');
+    const data = await resp.json();
+    renderComparison(data);
+  } catch (e) {
+    showStatus('Compare failed: ' + e.message, 'error');
+  }
+}
+
+function renderComparison(data) {
+  document.getElementById('compareSection').classList.add('visible');
+  const s = data.summary;
+
+  function deltaCard(label, d, unit) {
+    const delta = d.delta;
+    const cls = delta > 0 ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-zero';
+    const sign = delta > 0 ? '+' : '';
+    return `<div class="delta-card">
+      <div class="d-label">${label}</div>
+      <div class="d-values">
+        <span class="d-before">${d.before}${unit}</span>
+        <span class="d-arrow">&#x2192;</span>
+        <span class="d-after">${d.after}${unit}</span>
+      </div>
+      <div class="d-delta ${cls}">${sign}${delta}${unit}</div>
+    </div>`;
+  }
+
+  document.getElementById('deltaGrid').innerHTML =
+    deltaCard('PCPlus Memory', s.pcplus_mem_mb, ' MB') +
+    deltaCard('PCPlus CPU', s.pcplus_cpu_pct, '%') +
+    deltaCard('PCPlus Processes', s.pcplus_count, '') +
+    deltaCard('Total Memory', s.total_mem_mb, ' MB') +
+    deltaCard('Total CPU', s.total_cpu_pct, '%') +
+    deltaCard('Process Count', s.process_count, '');
+
+  const changes = data.process_changes || [];
+  const maxDelta = Math.max(...changes.map(c => Math.abs(c.mem_delta)), 1);
+
+  document.getElementById('procChanges').innerHTML = changes.map(c => {
+    const memCls = c.mem_delta > 0 ? 'delta-positive' : c.mem_delta < 0 ? 'delta-negative' : 'delta-zero';
+    const cpuCls = c.cpu_delta > 0 ? 'delta-positive' : c.cpu_delta < 0 ? 'delta-negative' : 'delta-zero';
+    const barW = Math.abs(c.mem_delta) / maxDelta * 100;
+    const barColor = c.mem_delta > 0 ? 'var(--red)' : 'var(--green)';
+    const barDir = c.mem_delta > 0 ? 'left' : 'right';
+    const isPcplus = c.name.toLowerCase().includes('pcplus');
+    return `<tr${isPcplus ? ' style="background:rgba(59,130,246,.06)"' : ''}>
+      <td${isPcplus ? ' style="color:var(--accent);font-weight:600"' : ''}>${esc(c.name)}</td>
+      <td style="text-align:right;color:var(--amber)">${c.mem_before}</td>
+      <td style="text-align:right;color:var(--green)">${c.mem_after}</td>
+      <td style="text-align:right" class="${memCls}">${c.mem_delta > 0 ? '+' : ''}${c.mem_delta}</td>
+      <td><div class="delta-bar"><div class="delta-bar-fill" style="width:${barW}%;background:${barColor};${barDir}:0"></div></div></td>
+      <td style="text-align:right">${c.cpu_before.toFixed(1)}</td>
+      <td style="text-align:right">${c.cpu_after.toFixed(1)}</td>
+      <td style="text-align:right" class="${cpuCls}">${c.cpu_delta > 0 ? '+' : ''}${c.cpu_delta.toFixed(1)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">No significant changes detected</td></tr>';
+
+  document.getElementById('compareSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.className = 'status-msg ' + type;
+  el.textContent = msg;
+  if (type === 'success') setTimeout(() => { el.textContent = ''; el.className = ''; }, 8000);
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+init();
+</script>
+</body>
+</html>

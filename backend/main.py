@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral, benchmark, agent_benchmark, pc_detail
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral, benchmark, agent_benchmark, pc_detail, baseline
 
 
 class ReminderCreate(BaseModel):
@@ -159,6 +159,32 @@ async def fleet_benchmark(site: str = None):
 @app.get("/api/agent/{agent_id}/detail")
 async def agent_detail(agent_id: str):
     return await pc_detail.get_pc_detail(agent_id)
+
+
+@app.post("/api/baseline/snapshot/{agent_id}")
+async def take_baseline_snapshot(agent_id: str, label: str = ""):
+    return await baseline.take_snapshot(agent_id, label)
+
+
+@app.get("/api/baseline/list")
+async def list_baselines(agent_id: str = None):
+    return baseline.list_snapshots(agent_id)
+
+
+@app.get("/api/baseline/snapshot/{filename}")
+async def get_baseline_snapshot(filename: str):
+    data = baseline.get_snapshot(filename)
+    if not data:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return data
+
+
+@app.get("/api/baseline/compare")
+async def compare_baselines(a: str, b: str):
+    result = baseline.compare_snapshots(a, b)
+    if not result:
+        return JSONResponse({"error": "snapshot not found"}, status_code=404)
+    return result
 
 
 @app.get("/api/reminders")
