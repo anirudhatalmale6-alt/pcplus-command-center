@@ -123,6 +123,8 @@ transition:all .3s;cursor:pointer;
 .agent-dot.offline{background:var(--red)}
 .agent-dot.overdue{background:var(--orange)}
 .agent-hostname{font-family:var(--mono);font-size:16px;font-weight:700;flex:1}
+.detail-link{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;background:rgba(59,130,246,.15);color:var(--blue);text-decoration:none;transition:.2s}
+.detail-link:hover{background:var(--blue);color:#fff}
 .agent-pcplus-badge{
 font-family:var(--mono);font-size:10px;font-weight:600;
 padding:3px 8px;border-radius:4px;
@@ -378,6 +380,7 @@ function render(data) {
         <div class="agent-top">
           <div class="agent-dot ${a.status}"></div>
           <div class="agent-hostname">${esc(a.hostname)}</div>
+          <a href="/pc.html?id=${encodeURIComponent(a.agent_id)}" class="detail-link" onclick="event.stopPropagation()" title="Full diagnostics">DETAIL</a>
           <span class="agent-pcplus-badge ${hasPcplus ? 'installed' : 'none'}">${hasPcplus ? 'PC PLUS' : 'NO APP'}</span>
         </div>
         <div class="agent-specs">
