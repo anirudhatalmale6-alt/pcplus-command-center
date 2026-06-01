@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral
+from modules import zammad, rmm, reminders, notifications, crashplan, calcom, threecx, meshcentral, benchmark
 
 
 class ReminderCreate(BaseModel):
@@ -42,10 +42,11 @@ async def refresh_data():
             incoming_task = threecx.get_incoming_calls()
             active_calls_task = threecx.get_active_calls()
             mesh_task = meshcentral.get_support_sessions()
+            bench_task = benchmark.get_server_benchmark()
 
-            tickets, stats, agents, alerts, backups, appointments, missed, incoming, active_calls, mesh = await asyncio.gather(
+            tickets, stats, agents, alerts, backups, appointments, missed, incoming, active_calls, mesh, bench = await asyncio.gather(
                 tickets_task, stats_task, agents_task, alerts_task, backups_task,
-                appointments_task, missed_task, incoming_task, active_calls_task, mesh_task,
+                appointments_task, missed_task, incoming_task, active_calls_task, mesh_task, bench_task,
                 return_exceptions=True
             )
 
@@ -60,6 +61,7 @@ async def refresh_data():
                 "incoming_calls": incoming if not isinstance(incoming, Exception) else [],
                 "active_calls": active_calls if not isinstance(active_calls, Exception) else [],
                 "remote_support": mesh if not isinstance(mesh, Exception) else {"sessions": [], "invite_url": ""},
+                "benchmark": bench if not isinstance(bench, Exception) else {"server": {}, "services": {}, "other_processes": []},
                 "reminders": reminders.get_reminders(),
                 "updated_at": datetime.now().isoformat(),
             }
@@ -142,6 +144,11 @@ async def appointments():
 @app.get("/api/remote-support")
 async def remote_support():
     return await meshcentral.get_support_sessions()
+
+
+@app.get("/api/benchmark")
+async def server_benchmark():
+    return await benchmark.get_server_benchmark()
 
 
 @app.get("/api/reminders")

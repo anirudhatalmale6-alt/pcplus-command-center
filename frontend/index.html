@@ -430,6 +430,69 @@ padding:60px 20px;text-align:center;
 border:1px dashed var(--border);border-radius:12px;
 }
 
+/* ── Benchmark Screen ── */
+.bench-server-info{margin-bottom:16px}
+.bench-info-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bench-info-name{font-size:18px;font-weight:700;color:var(--text);font-family:var(--font-mono)}
+.bench-info-detail{font-size:12px;color:var(--text-mid)}
+
+.bench-gauges{
+display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;
+}
+@media(max-width:768px){.bench-gauges{grid-template-columns:repeat(2,1fr)}}
+.bench-gauge{
+padding:20px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.gauge-ring{
+width:90px;height:90px;border-radius:50%;
+background:conic-gradient(var(--color) calc(var(--pct) * 1%),var(--navy) 0);
+display:grid;place-items:center;position:relative;
+}
+.gauge-ring::before{
+content:'';position:absolute;inset:8px;border-radius:50%;background:var(--card);
+}
+.gauge-inner{position:relative;z-index:1;text-align:center}
+.gauge-val{font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text)}
+.gauge-label{font-size:13px;font-weight:600;color:var(--text);letter-spacing:1px;text-transform:uppercase}
+.gauge-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+
+.bench-services-title{
+font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+color:var(--text-dim);margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.bench-services{display:flex;flex-direction:column;gap:4px;margin-bottom:20px}
+.bench-svc-row{
+display:grid;grid-template-columns:160px 1fr 110px 60px;align-items:center;
+padding:10px 16px;border-radius:8px;
+background:var(--card);border:1px solid var(--border);
+gap:12px;transition:all .3s;
+}
+.bench-svc-row:hover{border-color:var(--border-active);background:var(--card-elevated)}
+@media(max-width:768px){.bench-svc-row{grid-template-columns:100px 1fr 80px 50px;padding:8px 10px}}
+.bench-svc-name{font-size:13px;font-weight:600;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bench-svc-bars{display:flex;flex-direction:column;gap:3px}
+.bench-bar-wrap{height:8px;border-radius:4px;background:rgba(255,255,255,.04);overflow:hidden}
+.bench-bar-wrap.cpu{height:5px}
+.bench-bar{height:100%;border-radius:4px;transition:width .6s ease}
+.bench-svc-vals{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.bench-val-mem{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text)}
+.bench-val-cpu{font-family:var(--font-mono);font-size:10px;color:var(--text-mid)}
+.bench-svc-procs{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-align:right}
+
+.bench-other-title{
+font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+color:var(--text-dim);margin-bottom:8px;
+}
+.bench-other-row{
+display:flex;align-items:center;justify-content:space-between;
+padding:6px 16px;border-radius:6px;margin-bottom:3px;
+background:rgba(255,255,255,.02);
+}
+.bench-other-name{font-family:var(--font-mono);font-size:12px;color:var(--text-mid)}
+.bench-other-val{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+
 /* ── New Ticket Alert Banner ── */
 .alert-banner{
 position:fixed;top:0;left:0;right:0;z-index:1000;
@@ -502,6 +565,7 @@ display:none;pointer-events:none;
       <button class="nav-dot" data-screen="2" title="Backup Status"></button>
       <button class="nav-dot" data-screen="3" title="Today's Tasks"></button>
       <button class="nav-dot" data-screen="4" title="Remote Support"></button>
+      <button class="nav-dot" data-screen="5" title="Server Resources"></button>
     </div>
     <div class="topbar-right">
       <div class="paused-badge" id="pausedBadge">PAUSED</div>
@@ -604,6 +668,24 @@ display:none;pointer-events:none;
       <div class="session-grid stagger" id="sessionGrid"></div>
     </div>
 
+    <!-- Screen 6: Server Resources -->
+    <div class="screen" id="screen5">
+      <div class="screen-header">
+        <div class="screen-title">
+          <div class="icon" style="background:rgba(37,150,190,.12);color:var(--blue)">&#9881;</div>
+          Server Resources
+        </div>
+        <div class="badges">
+          <div class="badge badge-new" id="badgeUptime"></div>
+        </div>
+      </div>
+      <div class="bench-server-info" id="benchServerInfo"></div>
+      <div class="bench-gauges" id="benchGauges"></div>
+      <div class="bench-services-title">Service Resource Usage</div>
+      <div class="bench-services" id="benchServices"></div>
+      <div id="benchOther"></div>
+    </div>
+
   </div>
 
   <!-- Bottom Bar -->
@@ -623,10 +705,10 @@ display:none;pointer-events:none;
 const ROTATE_INTERVAL = 20000;
 const WS_URL = `ws://${location.host}/ws`;
 const API_URL = '/api/dashboard';
-const TZ = 'America/Toronto';
+const TZ = 'America/Vancouver';
 
 let currentScreen = 0;
-let totalScreens = 5;
+let totalScreens = 6;
 let paused = false;
 let rotateTimer = null;
 let ws = null;
@@ -1045,6 +1127,97 @@ function renderRemoteSupport(rs) {
   `).join('');
 }
 
+function renderBenchmark(bench) {
+  const b = bench || { server: {}, services: {}, other_processes: [] };
+  const s = b.server || {};
+
+  document.getElementById('badgeUptime').textContent = s.uptime_days ? `Up ${s.uptime_days}d` : '';
+
+  document.getElementById('benchServerInfo').innerHTML = `
+    <div class="bench-info-row">
+      <span class="bench-info-name">${esc(s.name || 'Server')}</span>
+      <span class="bench-info-detail">${esc(s.cpu_model || '')} &middot; ${s.cores || 0} cores &middot; ${s.ram_total_gb || 0} GB RAM</span>
+    </div>`;
+
+  const cpuColor = s.cpu_pct > 80 ? 'var(--red)' : s.cpu_pct > 60 ? 'var(--orange)' : 'var(--green)';
+  const ramColor = s.ram_pct > 85 ? 'var(--red)' : s.ram_pct > 70 ? 'var(--orange)' : 'var(--blue)';
+  const diskColor = s.disk_pct > 85 ? 'var(--red)' : s.disk_pct > 70 ? 'var(--orange)' : 'var(--blue)';
+  const swapPct = s.swap_total_gb > 0 ? Math.round(s.swap_used_gb / s.swap_total_gb * 100) : 0;
+  const swapColor = swapPct > 50 ? 'var(--orange)' : 'var(--text-mid)';
+
+  document.getElementById('benchGauges').innerHTML = `
+    <div class="bench-gauge">
+      <div class="gauge-ring" style="--pct:${s.cpu_pct || 0};--color:${cpuColor}">
+        <div class="gauge-inner"><span class="gauge-val">${s.cpu_pct || 0}%</span></div>
+      </div>
+      <div class="gauge-label">CPU</div>
+      <div class="gauge-sub">Load: ${s.load_1 || 0} / ${s.load_5 || 0} / ${s.load_15 || 0}</div>
+    </div>
+    <div class="bench-gauge">
+      <div class="gauge-ring" style="--pct:${s.ram_pct || 0};--color:${ramColor}">
+        <div class="gauge-inner"><span class="gauge-val">${s.ram_pct || 0}%</span></div>
+      </div>
+      <div class="gauge-label">RAM</div>
+      <div class="gauge-sub">${s.ram_used_gb || 0} / ${s.ram_total_gb || 0} GB</div>
+    </div>
+    <div class="bench-gauge">
+      <div class="gauge-ring" style="--pct:${s.disk_pct || 0};--color:${diskColor}">
+        <div class="gauge-inner"><span class="gauge-val">${s.disk_pct || 0}%</span></div>
+      </div>
+      <div class="gauge-label">Disk</div>
+      <div class="gauge-sub">${s.disk_used_gb || 0} / ${s.disk_total_gb || 0} GB</div>
+    </div>
+    <div class="bench-gauge">
+      <div class="gauge-ring" style="--pct:${swapPct};--color:${swapColor}">
+        <div class="gauge-inner"><span class="gauge-val">${swapPct}%</span></div>
+      </div>
+      <div class="gauge-label">Swap</div>
+      <div class="gauge-sub">${s.swap_used_gb || 0} / ${s.swap_total_gb || 0} GB</div>
+    </div>`;
+
+  const services = b.services || {};
+  const svcEntries = Object.entries(services);
+  const maxMem = svcEntries.length > 0 ? Math.max(...svcEntries.map(([,v]) => v.mem_mb)) : 1;
+  const maxCpu = svcEntries.length > 0 ? Math.max(...svcEntries.map(([,v]) => v.cpu), 1) : 1;
+
+  document.getElementById('benchServices').innerHTML = svcEntries.map(([name, v]) => {
+    const memBarPct = Math.min((v.mem_mb / maxMem) * 100, 100);
+    const cpuBarPct = Math.min((v.cpu / maxCpu) * 100, 100);
+    const memColor = v.mem_mb > 2000 ? 'var(--orange)' : v.mem_mb > 1000 ? 'var(--blue)' : 'var(--green)';
+    return `
+    <div class="bench-svc-row">
+      <div class="bench-svc-name">${esc(name)}</div>
+      <div class="bench-svc-bars">
+        <div class="bench-bar-wrap">
+          <div class="bench-bar" style="width:${memBarPct}%;background:${memColor}"></div>
+        </div>
+        <div class="bench-bar-wrap cpu">
+          <div class="bench-bar" style="width:${cpuBarPct}%;background:var(--blue)"></div>
+        </div>
+      </div>
+      <div class="bench-svc-vals">
+        <span class="bench-val-mem">${v.mem_mb >= 1024 ? (v.mem_mb / 1024).toFixed(1) + ' GB' : v.mem_mb + ' MB'}</span>
+        <span class="bench-val-cpu">${v.cpu}% cpu</span>
+      </div>
+      <div class="bench-svc-procs">${v.processes} proc</div>
+    </div>`;
+  }).join('');
+
+  const others = b.other_processes || [];
+  const otherEl = document.getElementById('benchOther');
+  if (others.length > 0) {
+    otherEl.innerHTML = `
+      <div class="bench-other-title">Other Notable Processes</div>
+      ${others.map(p => `
+        <div class="bench-other-row">
+          <span class="bench-other-name">${esc(p.name)}</span>
+          <span class="bench-other-val">${p.mem_mb} MB / ${p.cpu}% cpu</span>
+        </div>`).join('')}`;
+  } else {
+    otherEl.innerHTML = '';
+  }
+}
+
 function copyInviteUrl() {
   const url = document.getElementById('inviteUrlText')?.textContent;
   if (url) {
@@ -1101,6 +1274,7 @@ function applyData(d) {
   renderAppointments(d.appointments);
   renderReminders(d.reminders);
   renderRemoteSupport(d.remote_support);
+  renderBenchmark(d.benchmark);
 }
 
 async function fetchData() {
