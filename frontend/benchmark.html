@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PC Plus - Server Resources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--navy:#0a1628;--navy-deep:#060e1a;--card:#0f1d32;--card-elevated:#132743;
+--blue:#2596be;--blue-dim:rgba(37,150,190,.15);--blue-glow:rgba(37,150,190,.3);
+--green:#27ae60;--green-dim:rgba(39,174,96,.12);
+--red:#e74c3c;--red-dim:rgba(231,76,60,.12);
+--orange:#f39c12;--orange-dim:rgba(243,156,18,.12);
+--purple:#9b59b6;--purple-dim:rgba(155,89,182,.12);
+--text:#e8edf3;--text-mid:#8899aa;--text-dim:#4a5e74;
+--border:rgba(37,150,190,.08);--border-active:rgba(37,150,190,.25);
+--font:'DM Sans',system-ui,sans-serif;
+--mono:'JetBrains Mono',monospace;
+}
+html{background:var(--navy-deep);color:var(--text);font-family:var(--font);scroll-behavior:smooth}
+body{
+min-height:100vh;
+background:
+  radial-gradient(ellipse 80% 60% at 20% 10%,rgba(37,150,190,.04) 0%,transparent 70%),
+  radial-gradient(ellipse 60% 50% at 80% 90%,rgba(39,174,96,.03) 0%,transparent 70%),
+  linear-gradient(180deg,#060e1a 0%,#0a1628 40%,#0d1b30 100%);
+}
+body::after{
+content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);
+}
+
+.topbar{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 32px;
+background:linear-gradient(180deg,rgba(6,14,26,.9) 0%,rgba(6,14,26,.4) 100%);
+border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;
+backdrop-filter:blur(10px);
+}
+.topbar::after{
+content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,var(--blue-glow),transparent);
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{
+width:38px;height:38px;border-radius:10px;
+background:linear-gradient(135deg,var(--green),var(--blue));
+display:grid;place-items:center;
+font-family:var(--mono);font-weight:700;font-size:16px;color:#fff;
+}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:.5px}
+.brand-sub{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--blue);margin-top:1px}
+.nav-links{display:flex;gap:6px}
+.nav-link{
+padding:6px 16px;border-radius:6px;border:1px solid var(--border);
+background:transparent;color:var(--text-mid);font-family:var(--font);
+font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s;
+}
+.nav-link:hover,.nav-link.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(37,150,190,.3)}
+.topbar-meta{display:flex;align-items:center;gap:16px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(39,174,96,.4);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.update-time{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
+.container{max-width:1400px;margin:0 auto;padding:24px 32px}
+@media(max-width:768px){.container{padding:16px}}
+
+.page-title{font-size:28px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:12px}
+.page-title .icon{
+width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+font-size:20px;background:var(--blue-dim);color:var(--blue);flex-shrink:0;
+}
+.page-subtitle{font-size:13px;color:var(--text-mid);margin-bottom:24px;padding-left:52px}
+
+/* Server Header */
+.server-header{
+padding:20px 24px;border-radius:12px;margin-bottom:24px;
+background:linear-gradient(135deg,var(--card) 0%,var(--card-elevated) 100%);
+border:1px solid var(--border-active);
+display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+}
+.server-name{font-size:20px;font-weight:700;font-family:var(--mono)}
+.server-specs{display:flex;gap:20px;flex-wrap:wrap}
+.server-spec{
+font-size:12px;color:var(--text-mid);
+display:flex;align-items:center;gap:6px;
+}
+.server-spec .val{color:var(--text);font-weight:600;font-family:var(--mono)}
+
+/* Gauges Row */
+.gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+@media(max-width:900px){.gauges{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.gauges{grid-template-columns:1fr}}
+.gauge-card{
+padding:24px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;gap:20px;
+}
+.gauge-ring{
+width:100px;height:100px;border-radius:50%;flex-shrink:0;
+background:conic-gradient(var(--color) calc(var(--pct) * 1%),rgba(255,255,255,.04) 0);
+display:grid;place-items:center;position:relative;
+}
+.gauge-ring::before{
+content:'';position:absolute;inset:10px;border-radius:50%;background:var(--card);
+}
+.gauge-inner{position:relative;z-index:1;text-align:center}
+.gauge-pct{font-family:var(--mono);font-size:22px;font-weight:700}
+.gauge-detail{flex:1}
+.gauge-title{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.gauge-stats{display:flex;flex-direction:column;gap:4px}
+.gauge-stat{display:flex;justify-content:space-between;font-size:12px}
+.gauge-stat .label{color:var(--text-dim)}
+.gauge-stat .value{font-family:var(--mono);font-weight:600}
+
+/* Section Headers */
+.section-header{
+font-size:16px;font-weight:700;letter-spacing:.5px;
+color:var(--text);margin:32px 0 16px;
+display:flex;align-items:center;gap:10px;
+padding-bottom:8px;border-bottom:1px solid var(--border);
+}
+.section-header .dot{width:10px;height:10px;border-radius:3px}
+.section-count{
+font-family:var(--mono);font-size:12px;color:var(--text-dim);
+background:rgba(255,255,255,.04);padding:2px 10px;border-radius:4px;margin-left:auto;
+}
+
+/* Service Table */
+.svc-table{width:100%;border-collapse:separate;border-spacing:0 4px}
+.svc-table th{
+font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+color:var(--text-dim);text-align:left;padding:8px 16px;
+}
+.svc-table th.right{text-align:right}
+.svc-row{background:var(--card);transition:all .3s}
+.svc-row:hover{background:var(--card-elevated)}
+.svc-row td{padding:12px 16px;border:1px solid var(--border);border-left:none;border-right:none}
+.svc-row td:first-child{border-left:1px solid var(--border);border-radius:8px 0 0 8px}
+.svc-row td:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0}
+.svc-name{font-family:var(--mono);font-size:14px;font-weight:600;white-space:nowrap}
+.svc-bar-cell{min-width:200px}
+.svc-bar-wrap{height:10px;border-radius:5px;background:rgba(255,255,255,.04);overflow:hidden;margin-bottom:3px}
+.svc-bar-wrap.cpu{height:6px}
+.svc-bar{height:100%;border-radius:5px;transition:width .8s ease}
+.svc-val{font-family:var(--mono);font-size:13px;font-weight:600;text-align:right;white-space:nowrap}
+.svc-val.dim{font-size:11px;color:var(--text-mid);font-weight:400}
+.svc-pct{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:right}
+.svc-procs{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:center}
+
+/* Memory Breakdown Chart */
+.mem-chart{
+padding:24px;border-radius:12px;margin-bottom:24px;
+background:var(--card);border:1px solid var(--border);
+}
+.mem-bar-container{
+height:32px;border-radius:6px;overflow:hidden;display:flex;
+background:rgba(255,255,255,.03);margin-top:12px;
+}
+.mem-segment{
+height:100%;display:flex;align-items:center;justify-content:center;
+font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;
+transition:width .8s ease;position:relative;min-width:0;overflow:hidden;
+}
+.mem-segment:hover{filter:brightness(1.2)}
+.mem-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.mem-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-mid)}
+.mem-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* Other Processes */
+.other-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.other-card{
+padding:12px 16px;border-radius:8px;
+background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:space-between;
+font-size:12px;
+}
+.other-name{font-family:var(--mono);font-weight:600;color:var(--text-mid)}
+.other-vals{font-family:var(--mono);color:var(--text-dim);text-align:right}
+.other-vals span{display:block}
+
+/* Comparison View */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:900px){.compare-grid{grid-template-columns:1fr}}
+.compare-card{
+padding:20px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+}
+.compare-title{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);display:flex;align-items:center;gap:8px}
+.compare-title .dot{width:8px;height:8px;border-radius:50%}
+.rank-list{display:flex;flex-direction:column;gap:6px}
+.rank-item{
+display:flex;align-items:center;gap:12px;
+padding:8px 12px;border-radius:6px;
+background:rgba(255,255,255,.02);
+}
+.rank-pos{
+font-family:var(--mono);font-size:11px;font-weight:700;
+width:24px;height:24px;border-radius:6px;
+display:grid;place-items:center;flex-shrink:0;
+}
+.rank-pos.gold{background:rgba(243,156,18,.15);color:var(--orange)}
+.rank-pos.silver{background:rgba(255,255,255,.06);color:var(--text-mid)}
+.rank-pos.bronze{background:rgba(231,76,60,.1);color:var(--red)}
+.rank-name{font-family:var(--mono);font-size:13px;font-weight:600;flex:1}
+.rank-val{font-family:var(--mono);font-size:13px;font-weight:600}
+
+/* Load Average */
+.load-section{
+padding:20px 24px;border-radius:12px;
+background:var(--card);border:1px solid var(--border);
+margin-bottom:24px;
+}
+.load-bars{display:flex;gap:24px;align-items:flex-end;height:80px;margin-top:12px}
+.load-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.load-bar-outer{width:100%;height:60px;border-radius:4px;background:rgba(255,255,255,.03);position:relative;overflow:hidden}
+.load-bar-fill{position:absolute;bottom:0;left:0;right:0;border-radius:4px;transition:height .6s ease}
+.load-label{font-size:11px;color:var(--text-dim)}
+.load-val{font-family:var(--mono);font-size:14px;font-weight:600}
+
+/* Footer */
+.footer{
+margin-top:40px;padding:16px 32px;
+border-top:1px solid var(--border);
+text-align:center;font-size:11px;color:var(--text-dim);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text-dim);border-radius:3px}
+
+/* Animations */
+@keyframes fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.animate{animation:fade-up .5s ease both}
+.animate:nth-child(2){animation-delay:.05s}
+.animate:nth-child(3){animation-delay:.1s}
+.animate:nth-child(4){animation-delay:.15s}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">PC</div>
+    <div>
+      <div class="brand-name">PC Plus Computing</div>
+      <div class="brand-sub">Command Center</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/benchmark.html" class="nav-link active">Resources</a>
+  </div>
+  <div class="topbar-meta">
+    <div class="live-dot"></div>
+    <div class="update-time" id="updateTime">Loading...</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-title">
+    <div class="icon">&#9881;</div>
+    Server Resources
+  </div>
+  <div class="page-subtitle" id="pageSubtitle">Loading server data...</div>
+
+  <!-- Server Header -->
+  <div class="server-header animate" id="serverHeader"></div>
+
+  <!-- Gauges -->
+  <div class="gauges" id="gauges"></div>
+
+  <!-- Memory Breakdown Stacked Bar -->
+  <div class="mem-chart animate" id="memChart">
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">Memory Allocation by Service</div>
+    <div style="font-size:11px;color:var(--text-dim)" id="memChartSub"></div>
+    <div class="mem-bar-container" id="memBar"></div>
+    <div class="mem-legend" id="memLegend"></div>
+  </div>
+
+  <!-- Side-by-side: Top RAM vs Top CPU -->
+  <div class="compare-grid" id="compareGrid"></div>
+
+  <!-- Load Average -->
+  <div class="load-section animate" id="loadSection"></div>
+
+  <!-- Full Service Table -->
+  <div class="section-header">
+    <div class="dot" style="background:var(--blue)"></div>
+    All Services
+    <span class="section-count" id="svcCount">0 services</span>
+  </div>
+  <table class="svc-table" id="svcTable">
+    <thead>
+      <tr>
+        <th style="width:180px">Service</th>
+        <th>Memory</th>
+        <th>CPU</th>
+        <th class="right" style="width:100px">RAM</th>
+        <th class="right" style="width:80px">RAM %</th>
+        <th class="right" style="width:80px">CPU %</th>
+        <th class="right" style="width:60px">Procs</th>
+      </tr>
+    </thead>
+    <tbody id="svcBody"></tbody>
+  </table>
+
+  <!-- Other Processes -->
+  <div class="section-header" id="otherHeader" style="display:none">
+    <div class="dot" style="background:var(--orange)"></div>
+    Other Notable Processes
+    <span class="section-count" id="otherCount">0</span>
+  </div>
+  <div class="other-grid" id="otherGrid"></div>
+
+  <div class="footer">
+    PC PLUS COMPUTING INC. &middot; Server Resources Monitor &middot; Auto-refreshes every 30s
+  </div>
+</div>
+
+<script>
+const TZ = 'America/Vancouver';
+const SVC_COLORS = [
+  '#2596be','#27ae60','#e74c3c','#f39c12','#9b59b6',
+  '#1abc9c','#e67e22','#3498db','#e74c6f','#2ecc71',
+  '#f1c40f','#8e44ad','#16a085','#d35400','#c0392b',
+  '#2980b9','#7f8c8d','#34495e'
+];
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function fmtMem(mb) {
+  return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : mb + ' MB';
+}
+
+function colorForPct(pct, thresholds) {
+  if (pct > (thresholds?.[1] || 80)) return 'var(--red)';
+  if (pct > (thresholds?.[0] || 60)) return 'var(--orange)';
+  return 'var(--green)';
+}
+
+function render(data) {
+  const b = data || { server: {}, services: {}, other_processes: [] };
+  const s = b.server || {};
+  const services = b.services || {};
+  const others = b.other_processes || [];
+  const svcEntries = Object.entries(services);
+
+  document.getElementById('updateTime').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('pageSubtitle').textContent =
+    `${s.name || 'Server'} — Real-time resource monitoring. ${svcEntries.length} tracked services.`;
+
+  // Server Header
+  document.getElementById('serverHeader').innerHTML = `
+    <div>
+      <div class="server-name">${esc(s.name || 'Server')}</div>
+    </div>
+    <div class="server-specs">
+      <div class="server-spec">CPU: <span class="val">${esc(s.cpu_model || '?')}</span></div>
+      <div class="server-spec">Cores: <span class="val">${s.cores || 0}</span></div>
+      <div class="server-spec">RAM: <span class="val">${s.ram_total_gb || 0} GB</span></div>
+      <div class="server-spec">Disk: <span class="val">${s.disk_total_gb || 0} GB</span></div>
+      <div class="server-spec">Uptime: <span class="val">${s.uptime_days || 0} days</span></div>
+    </div>`;
+
+  // Gauges
+  const cpuColor = colorForPct(s.cpu_pct, [60, 80]);
+  const ramColor = colorForPct(s.ram_pct, [70, 85]);
+  const diskColor = colorForPct(s.disk_pct, [70, 85]);
+  const swapPct = s.swap_total_gb > 0 ? Math.round(s.swap_used_gb / s.swap_total_gb * 100) : 0;
+  const swapColor = swapPct > 50 ? 'var(--orange)' : 'var(--text-mid)';
+
+  document.getElementById('gauges').innerHTML = [
+    { title: 'CPU', pct: s.cpu_pct || 0, color: cpuColor, stats: [
+      ['Usage', (s.cpu_pct || 0) + '%'],
+      ['Load 1m', s.load_1 || 0],
+      ['Load 5m', s.load_5 || 0],
+      ['Load 15m', s.load_15 || 0],
+    ]},
+    { title: 'RAM', pct: s.ram_pct || 0, color: ramColor, stats: [
+      ['Used', (s.ram_used_gb || 0) + ' GB'],
+      ['Available', (s.ram_available_gb || 0) + ' GB'],
+      ['Total', (s.ram_total_gb || 0) + ' GB'],
+    ]},
+    { title: 'DISK', pct: s.disk_pct || 0, color: diskColor, stats: [
+      ['Used', (s.disk_used_gb || 0) + ' GB'],
+      ['Free', ((s.disk_total_gb || 0) - (s.disk_used_gb || 0)).toFixed(1) + ' GB'],
+      ['Total', (s.disk_total_gb || 0) + ' GB'],
+    ]},
+    { title: 'SWAP', pct: swapPct, color: swapColor, stats: [
+      ['Used', (s.swap_used_gb || 0) + ' GB'],
+      ['Total', (s.swap_total_gb || 0) + ' GB'],
+    ]},
+  ].map(g => `
+    <div class="gauge-card animate">
+      <div class="gauge-ring" style="--pct:${g.pct};--color:${g.color}">
+        <div class="gauge-inner"><span class="gauge-pct" style="color:${g.color}">${g.pct}%</span></div>
+      </div>
+      <div class="gauge-detail">
+        <div class="gauge-title">${g.title}</div>
+        <div class="gauge-stats">
+          ${g.stats.map(([l,v]) => `<div class="gauge-stat"><span class="label">${l}</span><span class="value">${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Memory Breakdown Stacked Bar
+  const totalServiceMem = svcEntries.reduce((sum, [,v]) => sum + v.mem_mb, 0);
+  const totalRamMb = (s.ram_total_gb || 1) * 1024;
+  document.getElementById('memChartSub').textContent =
+    `${fmtMem(totalServiceMem)} of ${s.ram_total_gb || 0} GB used by tracked services (${Math.round(totalServiceMem / totalRamMb * 100)}%)`;
+
+  let memBarHTML = '';
+  let legendHTML = '';
+  svcEntries.forEach(([name, v], i) => {
+    const pct = (v.mem_mb / totalRamMb * 100);
+    if (pct < 0.5) return;
+    const color = SVC_COLORS[i % SVC_COLORS.length];
+    memBarHTML += `<div class="mem-segment" style="width:${pct}%;background:${color}" title="${name}: ${fmtMem(v.mem_mb)}">${pct > 4 ? name.substring(0, 8) : ''}</div>`;
+    legendHTML += `<div class="mem-legend-item"><div class="mem-legend-dot" style="background:${color}"></div>${esc(name)}: ${fmtMem(v.mem_mb)}</div>`;
+  });
+  const untracked = totalRamMb * (s.ram_pct || 0) / 100 - totalServiceMem;
+  if (untracked > 100) {
+    memBarHTML += `<div class="mem-segment" style="width:${(untracked / totalRamMb * 100)}%;background:rgba(255,255,255,.08)" title="Other: ${fmtMem(Math.round(untracked))}"></div>`;
+    legendHTML += `<div class="mem-legend-item"><div class="mem-legend-dot" style="background:rgba(255,255,255,.15)"></div>Other: ${fmtMem(Math.round(untracked))}</div>`;
+  }
+  document.getElementById('memBar').innerHTML = memBarHTML;
+  document.getElementById('memLegend').innerHTML = legendHTML;
+
+  // Compare: Top RAM vs Top CPU
+  const byRam = [...svcEntries].sort((a, b) => b[1].mem_mb - a[1].mem_mb).slice(0, 8);
+  const byCpu = [...svcEntries].sort((a, b) => b[1].cpu - a[1].cpu).slice(0, 8);
+
+  document.getElementById('compareGrid').innerHTML = `
+    <div class="compare-card animate">
+      <div class="compare-title"><div class="dot" style="background:var(--orange)"></div> Top RAM Consumers</div>
+      <div class="rank-list">
+        ${byRam.map(([name, v], i) => `
+          <div class="rank-item">
+            <div class="rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
+            <div class="rank-name">${esc(name)}</div>
+            <div class="rank-val" style="color:${v.mem_mb > 2000 ? 'var(--orange)' : v.mem_mb > 1000 ? 'var(--blue)' : 'var(--green)'}">${fmtMem(v.mem_mb)}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="compare-card animate">
+      <div class="compare-title"><div class="dot" style="background:var(--blue)"></div> Top CPU Consumers</div>
+      <div class="rank-list">
+        ${byCpu.map(([name, v], i) => `
+          <div class="rank-item">
+            <div class="rank-pos ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i + 1}</div>
+            <div class="rank-name">${esc(name)}</div>
+            <div class="rank-val" style="color:${v.cpu > 10 ? 'var(--red)' : v.cpu > 5 ? 'var(--orange)' : 'var(--blue)'}">${v.cpu}%</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Load Average
+  const maxLoad = Math.max(s.load_1 || 0, s.load_5 || 0, s.load_15 || 0, s.cores || 24);
+  document.getElementById('loadSection').innerHTML = `
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">Load Average</div>
+    <div style="font-size:11px;color:var(--text-dim)">Optimal: below ${s.cores || 24} (number of CPU cores)</div>
+    <div class="load-bars">
+      ${[['1 min', s.load_1], ['5 min', s.load_5], ['15 min', s.load_15]].map(([label, val]) => {
+        const pct = Math.min((val || 0) / maxLoad * 100, 100);
+        const color = (val || 0) > (s.cores || 24) ? 'var(--red)' : (val || 0) > (s.cores || 24) * 0.7 ? 'var(--orange)' : 'var(--green)';
+        return `
+        <div class="load-bar-wrap">
+          <div class="load-val" style="color:${color}">${val || 0}</div>
+          <div class="load-bar-outer">
+            <div class="load-bar-fill" style="height:${pct}%;background:${color}"></div>
+          </div>
+          <div class="load-label">${label}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Service Table
+  const maxMem = svcEntries.length > 0 ? Math.max(...svcEntries.map(([,v]) => v.mem_mb)) : 1;
+  const maxCpu = svcEntries.length > 0 ? Math.max(...svcEntries.map(([,v]) => v.cpu), 1) : 1;
+  document.getElementById('svcCount').textContent = `${svcEntries.length} services`;
+
+  document.getElementById('svcBody').innerHTML = svcEntries.map(([name, v], i) => {
+    const memPct = Math.min((v.mem_mb / maxMem) * 100, 100);
+    const cpuPct = Math.min((v.cpu / maxCpu) * 100, 100);
+    const memColor = v.mem_mb > 2000 ? 'var(--orange)' : v.mem_mb > 1000 ? 'var(--blue)' : 'var(--green)';
+    const cpuColor = v.cpu > 10 ? 'var(--red)' : v.cpu > 5 ? 'var(--orange)' : 'var(--blue)';
+    return `
+    <tr class="svc-row">
+      <td><span class="svc-name">${esc(name)}</span></td>
+      <td class="svc-bar-cell">
+        <div class="svc-bar-wrap"><div class="svc-bar" style="width:${memPct}%;background:${memColor}"></div></div>
+      </td>
+      <td class="svc-bar-cell">
+        <div class="svc-bar-wrap cpu"><div class="svc-bar" style="width:${cpuPct}%;background:${cpuColor}"></div></div>
+      </td>
+      <td class="svc-val">${fmtMem(v.mem_mb)}</td>
+      <td class="svc-pct">${v.mem_pct}%</td>
+      <td class="svc-pct">${v.cpu}%</td>
+      <td class="svc-procs">${v.processes}</td>
+    </tr>`;
+  }).join('');
+
+  // Other Processes
+  if (others.length > 0) {
+    document.getElementById('otherHeader').style.display = 'flex';
+    document.getElementById('otherCount').textContent = others.length;
+    document.getElementById('otherGrid').innerHTML = others.map(p => `
+      <div class="other-card">
+        <span class="other-name">${esc(p.name)}</span>
+        <span class="other-vals">
+          <span>${p.mem_mb} MB</span>
+          <span style="font-size:10px">${p.cpu}% cpu</span>
+        </span>
+      </div>`).join('');
+  }
+}
+
+async function fetchData() {
+  try {
+    const resp = await fetch('/api/benchmark');
+    if (resp.ok) render(await resp.json());
+  } catch {}
+}
+
+fetchData();
+setInterval(fetchData, 30000);
+</script>
+</body>
+</html>
